@@ -113,6 +113,13 @@ nav button.on{color:var(--brand)}
 .wedit{display:flex;gap:8px;align-items:center}
 .wedit input{flex:1;background:var(--s1);border:1px solid var(--line);border-radius:11px;color:var(--text);padding:11px;font-size:15px;font-family:'Inter'}
 .wedit .wu{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.rir{display:flex;gap:8px;margin-bottom:6px}
+.rir button{flex:1;padding:14px 4px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:var(--text);font-weight:800;font-size:19px;cursor:pointer;font-family:'Inter';display:flex;flex-direction:column;align-items:center;gap:2px}
+.rir button small{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.rir button:active{transform:scale(.95)}
+.rir button.hard{border-color:#8A7233}
+.rir button.easy{border-color:var(--brand-d)}
+.srir{font-size:10px;color:var(--muted);font-weight:600}
 .lastline{font-size:11.5px;color:var(--muted);background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:12px}
 .lastline b{color:var(--text)}
 .exlist .eli{display:flex;align-items:center;gap:11px;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
@@ -167,10 +174,10 @@ nav button.on{color:var(--brand)}
 .heat .hm{width:26px;font-size:9.5px;color:var(--dim);font-weight:700;text-transform:uppercase;flex-shrink:0}
 .heat .hcells{display:flex;gap:3px;flex:1}
 .heat .hc{flex:1;aspect-ratio:1;border-radius:4px;background:var(--s2);cursor:pointer;max-width:22px}
-.heat .hc.p-push{background:var(--push)}
-.heat .hc.p-pull{background:var(--pull)}
-.heat .hc.p-leg{background:var(--leg)}
-.heat .hc.part{opacity:.42}
+.heat .hc.p-push{background:var(--push);color:var(--push)}
+.heat .hc.p-pull{background:var(--pull);color:var(--pull)}
+.heat .hc.p-leg{background:var(--leg);color:var(--leg)}
+.heat .hc.part{background:transparent!important;box-shadow:inset 0 0 0 2px currentColor}
 .heat .hc.none{background:var(--s2)}
 .monthline{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--muted);background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .monthline b{color:var(--text);font-family:'Bebas Neue';font-size:17px}
@@ -483,7 +490,7 @@ function openDay(ds){
     h+=`<div class="lastline"><b>${dn}/${tot}</b> series · <b>${(volOf(ds)/1000).toFixed(1)} t</b> de volumen${e.t0&&e.t1?' · '+fmtMin(Math.round((e.t1-e.t0)/60000)):''}${e.light?' · 🔋 ligera':''}</div>`;
     Object.keys(e.sd||{}).forEach(id=>{
       const x=ex(+id);if(!x)return;
-      h+=`<div class="exrow"><div class="en"><b>${esc(x.n)}</b><span>${(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')).join(' · ')}</span></div></div>`;
+      h+=`<div class="exrow"><div class="en"><b>${esc(x.n)}</b><span>${(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' (RIR '+s.rir+')':'')).join(' · ')}</span></div></div>`;
     });
     (e.notes||[]).forEach(n=>{h+=`<div class="diary">📝 <b>${n.t}</b> — ${esc(n.txt)}</div>`});
   }
@@ -585,7 +592,7 @@ function drawTrain(){
       <span class="sn">${i+1}</span>
       <span class="sw">${hecho?(arr[i]&&arr[i].w?arr[i].w+' kg':wLabel(x.w)):(w!=null?w+' kg'+(x.w.ps?' × lado':''):wLabel(x.w))}
       <small>${hecho?'hechas':'objetivo '+it.r+' reps'}</small></span>
-      <span class="sr">${hecho?(arr[i]?arr[i].r:'✓'):'—'}</span></div>`;
+      <span class="sr">${hecho?(arr[i]?arr[i].r+(arr[i].rir!=null?'<span class="srir"> RIR '+arr[i].rir+'</span>':''):'✓'):'—'}</span></div>`;
     if(act){
       const [a,b]=parseR(it.r);
       let reps='';
@@ -615,12 +622,42 @@ function doSet(reps){
   if(cur>=it.s)return;
   const wi=document.getElementById('sw');
   const w=wi&&wi.value!==''?parseFloat(wi.value):null;
+  if((cur+1)>=it.s){PEND={reps,w};askRIR(x);return}
+  recordSet(reps,w,null);
+}
+let PEND=null;
+function askRIR(x){
+  const cuida=x.aq>=2;
+  openM(`<h2>¿Cuántas te quedaban?</h2><div class="sub">Última serie de ${esc(x.n)} — repeticiones en reserva${cuida?'<br>🧊 Ejercicio del protocolo: no bajes de 2':''}</div>
+  <div class="rir">
+    <button class="hard" onclick="setRIR(0)">0<small>al fallo</small></button>
+    <button class="hard" onclick="setRIR(1)">1<small>casi</small></button>
+    <button onclick="setRIR(2)">2<small>duro</small></button>
+    <button class="easy" onclick="setRIR(3)">3+<small>cómodo</small></button>
+  </div>
+  <div class="mb"><button onclick="closeM();setRIR(null)">Omitir</button></div>`);
+}
+function setRIR(v){
+  closeM();
+  if(!PEND)return;
+  const p=PEND;PEND=null;
+  recordSet(p.reps,p.w,v);
+}
+function recordSet(reps,w,rir){
+  const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
+  const e=entry(ds,dk);
+  const cur=e.prog[it.e]||0;
+  if(cur>=it.s)return;
   e.prog[it.e]=cur+1;
   if(!e.sd[it.e])e.sd[it.e]=[];
-  e.sd[it.e].push({r:reps,w:w!=null?w:undefined});
+  const rec={r:reps};
+  if(w!=null)rec.w=w;
+  if(rir!=null)rec.rir=rir;
+  e.sd[it.e].push(rec);
   const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
   saveLog(ds);
   if(navigator.vibrate)navigator.vibrate(25);
+  if(rir!=null&&rir<=1&&x.aq>=2)toast('🧊 '+x.n+': mantén 2 en reserva por el Aquiles',true);
   const tot=planSets(dk,e);
   if(doneSets(e)>=tot){drawTrain();finishDay();return}
   const last=(cur+1)>=it.s;
@@ -795,7 +832,7 @@ function exDetail(id){
   const ls=lastSets(id);
   let h=`<h2>${esc(x.n)}</h2><div class="sub">${PAT[x.pat].n} · ${x.pri}${x.sec.length?' + '+x.sec.join(', '):''} · ${x.eq}</div>`;
   h+=`<div class="lastline">Carga actual: <b>${wLabel(x.w)}</b>${x.aq>=2?'<br>🧊 Ejercicio bajo protocolo Aquiles':''}</div>`;
-  if(ls)h+=`<div class="lastline">Última sesión (${ls.ds.slice(5)}): <b>${ls.a.map(s=>s.r+(s.w?'@'+s.w:'')).join(' · ')}</b></div>`;
+  if(ls)h+=`<div class="lastline">Última sesión (${ls.ds.slice(5)}): <b>${ls.a.map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')).join(' · ')}</b></div>`;
   if(hist.length)h+='<div class="lbl" style="margin:12px 0 6px">Historial de carga</div>'+hist.map(v=>`<div class="diary">📅 ${v.d} — <b>${v.w||(v.v+' kg')}</b></div>`).join('');
   h+=`<div class="mb"><button onclick="closeM()">Cerrar</button><button class="ok" onclick="editW(${id})">Cambiar peso</button></div>`;
   openM(h);
@@ -862,7 +899,7 @@ function vAct(){
     h+=`</span></div>`;
     cur.setDate(cur.getDate()+7);
   }
-  h+=`</div><div class="legend"><span><i style="background:var(--push)"></i>Empuje</span><span><i style="background:var(--pull)"></i>Tracción</span><span><i style="background:var(--leg)"></i>Pierna</span><span style="opacity:.5"><i style="background:var(--leg);opacity:.42"></i>incompleta</span></div></div>`;
+  h+=`</div><div class="legend"><span><i style="background:var(--push)"></i>Empuje</span><span><i style="background:var(--pull)"></i>Tracción</span><span><i style="background:var(--leg)"></i>Pierna</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--muted)"></i>incompleta</span></div></div>`;
   h+=`<div class="lbl" style="margin:14px 0 8px">Sesiones recientes</div>`;
   const dss=Object.keys(LOG).filter(ds=>doneSets(LOG[ds])>0).sort().reverse().slice(0,25);
   if(!dss.length)h+='<p class="empty">Sin sesiones registradas</p>';
@@ -882,6 +919,7 @@ const SYS=`Eres el entrenador personal de Jhair (Lima, Perú). Contexto:
 - Plan PPL 6 días con abdomen y gemelos integrados. Si su frecuencia real baja de forma sostenida, propone reestructurar (ej. torso/pierna 3 días) en vez de insistir.
 - PROTOCOLO AQUILES INNEGOCIABLE: hack, búlgaras, gemelos y prensa son sensibles. Cualquier molestia reportada congela subidas 14 días.
 - Progresión: doble progresión. Máximos por semana: +5 kg máquinas/compuestos, +2 kg aislamientos. Nunca más.
+- RIR (repeticiones en reserva) de la última serie: RIR 3+ con tope de reps = peso corto, sube. RIR 0-1 repetido = al límite, mantener o bajar. RIR subiendo con mismo peso = se adaptó, toca progresar. En ejercicios del protocolo Aquiles el piso es RIR 2: si reporta 0-1 ahí, corrígelo.
 - Deload cada 6-8 semanas.
 Responde en español peruano, directo. REGLAS DE FORMATO ESTRICTAS:
 - Texto plano: NADA de markdown, sin asteriscos, sin almohadillas, sin guiones de lista.
@@ -970,7 +1008,7 @@ function buildCtx(){
     const e=LOG[ds];const dn=doneSets(e);if(!dn&&!(e.notes||[]).length)return;
     const dk=dayKeyOf(ds);
     o+='— '+DS3[pd(ds).getDay()]+' '+ds+' · '+PLAN.days[dk].l+' '+dn+'/'+planSets(dk,e)+' series'+(e.light?' [LIGERA]':'')+'\n';
-    Object.keys(e.sd||{}).forEach(id=>{const x=ex(+id);if(x)o+='   '+x.n+': '+(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')).join(', ')+'\n'});
+    Object.keys(e.sd||{}).forEach(id=>{const x=ex(+id);if(x)o+='   '+x.n+': '+(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')).join(', ')+'\n'});
     (e.notes||[]).forEach(n=>{o+='   📝 '+n.t+' — '+n.txt+'\n'});
   });
   const fr=aqFrozen();
