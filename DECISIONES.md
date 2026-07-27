@@ -3,7 +3,7 @@
 > Documento de traspaso. Si una conversación se corta o empiezas una nueva,
 > este archivo es la fuente de verdad. Léelo antes de proponer cambios.
 >
-> Última actualización: 2026-07-27
+> Última actualización: 2026-07-27 (tarde)
 
 ---
 
@@ -17,8 +17,10 @@ análisis semanal.
 convertirse en un entrenador autónomo que se actualiza con los datos, propone
 mejoras, y se adapta tanto si la persona es constante como si no lo es.
 
-- Repo: `Jh0708-cloude/ascentpeak`
-- URL: `https://jh0708-cloude.github.io/ascentpeak/`
+- Repo: `Jh0708-cloude/AscentPeak`
+- URL: `https://jh0708-cloude.github.io/AscentPeak/`
+  **Las mayúsculas importan**: la ruta de GitHub Pages distingue mayúsculas de
+  minúsculas. `/ascentpeak/` devuelve 404.
 - Antecesores: `gymtrack` (v1, archivo histórico) y `gymtrack/V2` (pruebas del rediseño)
 
 ---
@@ -40,18 +42,31 @@ mejoras, y se adapta tanto si la persona es constante como si no lo es.
 Estas viven **en código**, validando la respuesta de la IA antes de aplicarla.
 No se confían al prompt.
 
+> **Dónde viven (desde 2026-07-27).** Las dos barandas duras están en `appProp()`,
+> la función del botón ✓ Aplicar, y corren **antes** de escribir cualquier dato.
+> Hasta esa fecha existían solo como texto dentro del prompt — o sea, como un
+> pedido a la IA, no como un candado. Si se toca esa función, esto va primero.
+
 ### Protocolo Aquiles
 - Ejercicios marcados sensibles (`aq >= 2`): **hack, búlgaras**. Nivel 1: prensa,
   gemelo en prensa, gemelo sentado. Nivel 3 (fuera del plan): elevaciones de
   talón en escalón — es el movimiento con más estiramiento profundo del tendón.
 - Cualquier nota que mencione "Aquiles" o "tendón" **congela las subidas 14 días**
   en esos ejercicios, automáticamente.
+- **Baranda en código**: con el congelamiento activo, una propuesta que suba peso
+  en un ejercicio `aq >= 1` **no se aplica**. Avisa hasta qué fecha y deja la
+  tarjeta pendiente. Las bajadas de peso sí pasan: el candado frena subidas, no
+  correcciones a la baja.
 - En estos ejercicios el piso de RIR es 2. Si reporta 0-1, el entrenador corrige.
 
 ### Progresión
 - Doble progresión: al llegar al tope de reps dos sesiones seguidas, sube.
 - **Máximos por semana: +5 kg en máquinas y compuestos, +2 kg en aislamientos.**
-  La app recorta cualquier propuesta que se pase.
+- **Baranda en código**: si la propuesta se pasa, se recorta al tope y se aplica
+  recortada, avisando cuánto pedía la IA. El esquema de series (`sc`) se recorta
+  con ella — no tendría sentido capar el peso y dejar entrar el número alto por
+  la otra puerta. Queda anotado en el diario con el valor original.
+  Aislamiento = `pat` que empieza en `iso_`, o `core`. Todo lo demás va con tope 5.
 - Deload cada 6-8 semanas.
 
 ### Nutrición
@@ -78,6 +93,8 @@ No se confían al prompt.
 | **Historial congelado** | Cada día completado guarda su total planificado (`tp`). Cambiar la rutina **nunca** altera lo ya registrado. Bug aprendido a la mala. |
 | **La IA propone, el humano decide** | Las propuestas bajan como tarjetas con ✓ Aplicar / ✗ Rechazar. Aplicar escribe el peso de verdad. Todo queda en el diario. |
 | **Dos apps separadas** | AscentPeak y NutriTrack son productos independientes. NutriTrack espera a que AscentPeak esté maduro. |
+| **Series directas y de ayuda, separadas** | El contador sumaba la serie completa al músculo primario y media a cada secundario, pero se comparaba contra rangos pensados para trabajo **directo**. Bíceps marcaba 35 cuando de directo tenía 18: la mitad eran jalones. Ahora la barra separa los dos tramos y el semáforo mira solo el directo. |
+| **El estado nunca se dice con color** | Bajo/óptimo/alto se marca con flecha ↓ ↑ y con la banda del rango detrás de la barra. Los colores quedan reservados para el patrón. Se intentó primero pintar el número y reapareció el mismo problema: "óptimo" salía lavanda y "alto" durazno, robándole el significado a la marca y al empuje. |
 
 ---
 
@@ -89,6 +106,11 @@ No se confían al prompt.
   significa otra cosa.
 - **Cuatro colores por patrón**, no nueve por músculo:
   empuje `#F7B489` (durazno) · tracción `#8FC0F5` · pierna `#7BE3AE` · core `#FFD98A`
+  Cada grupo muscular hereda el color de su patrón (`GCOL`): pecho, hombro y
+  tríceps van con empuje; espalda y bíceps con tracción.
+- **Ningún color se usa para dos cosas.** Si algo necesita comunicar estado o
+  intensidad, se resuelve con forma, posición u opacidad — flechas, bandas,
+  transparencia — nunca tomando prestado un color que ya tiene dueño.
 - Bebas Neue solo para números y títulos cortos. Inter para el resto.
 - Inspiración: amanecer sobre una cima (lavanda → durazno).
 
@@ -124,6 +146,15 @@ escribir en los datos con seguridad.
 `gt_weight_hist` (historial de cargas) · `gt_measures` (medidas) ·
 `g2_ai` (análisis) · `g2_diary` (propuestas aplicadas/rechazadas) ·
 `g2_key` (API key — **solo local, nunca sube a Firestore ni al repo**)
+
+En `g2_diary`, el campo `cap` guarda el valor original cuando la baranda recortó
+una propuesta. Si es `null`, la IA se mantuvo dentro del tope.
+
+### Carga por grupo (`loadByGroup`)
+Devuelve `{ grupo: {d, i} }` — `d` = series directas (músculo primario),
+`i` = series de ayuda (secundarios, a media serie cada uno). `RANGO` se compara
+**solo contra `d`**, porque esos topes son de trabajo directo. El contexto que
+recibe la IA también lleva los dos números separados.
 
 ---
 
@@ -168,8 +199,12 @@ Lectura para el entrenador:
 - Rediseño v2 — 4 pestañas, modo entreno enfocado, mapa de calor, carga por grupo
 - RIR
 - Rebautizo a AscentPeak con paleta propia
+- **Barandas en código** (27/07) — tope de subida y bloqueo por Aquiles dentro de
+  `appProp`, con el recorte anotado en el diario
 
 ### Pendiente
+- **Series extra.** Registrar la serie de más que a veces sale (`3+1`) en vez de
+  perderla. Cambio chico y alimenta directo el análisis.
 - **Paso 4 — sustitución de ejercicios.** "No puedo hacer este hoy" → la app
   propone el equivalente correcto por patrón y músculo, respetando el filtro
   del Aquiles. La equivalencia no es solo "mismo músculo": difieren en rango,
@@ -196,6 +231,7 @@ Lectura para el entrenador:
 - **Despliegue**: GitHub Pages, branch `main`, carpeta root. Ritual: respaldo →
   subir archivos → commit → esperar el ✅ en Actions → doble cierre/apertura de
   la app (service worker). **Subir el sw con la versión de caché bumpeada.**
+  Caché actual: `ascentpeak-v4`.
 
 ---
 
@@ -207,4 +243,13 @@ Lectura para el entrenador:
   adelante. Una migración mató la racha una vez.
 - **El entorno de trabajo se reinicia.** Si algo no está en GitHub, puede
   perderse. Subir apenas se entrega.
+- **Una regla escrita en el prompt no es una baranda.** Es un pedido. Si la regla
+  importa de verdad, tiene que correr en código antes de escribir el dato. La
+  diferencia es pedirle al cajero que no cobre de más versus que la caja no lo
+  permita.
+- **Un número solo significa algo si se compara con su misma unidad.** El
+  contador de carga mezclaba trabajo directo con indirecto y lo medía contra
+  rangos de trabajo directo: casi todo salía "alto" y el panel dejó de informar.
+- **Las rutas de GitHub Pages distinguen mayúsculas.** El repo es `AscentPeak`;
+  `/ascentpeak/` da 404 aunque el repo exista y el deploy esté en verde.
 - **La conversación se comprime.** Por eso existe este archivo.
