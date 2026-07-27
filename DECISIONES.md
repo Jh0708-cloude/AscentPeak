@@ -1,0 +1,210 @@
+# AscentPeak — Decisiones y estado del proyecto
+
+> Documento de traspaso. Si una conversación se corta o empiezas una nueva,
+> este archivo es la fuente de verdad. Léelo antes de proponer cambios.
+>
+> Última actualización: 2026-07-27
+
+---
+
+## 1. Qué es
+
+Entrenador de fuerza personal para Jhair (Lima, Perú). PWA sin build, desplegada
+en GitHub Pages, con Firebase para sincronización y la API de Claude para el
+análisis semanal.
+
+**La meta del proyecto no es registrar entrenamientos, es entrenar.** La app debe
+convertirse en un entrenador autónomo que se actualiza con los datos, propone
+mejoras, y se adapta tanto si la persona es constante como si no lo es.
+
+- Repo: `Jh0708-cloude/ascentpeak`
+- URL: `https://jh0708-cloude.github.io/ascentpeak/`
+- Antecesores: `gymtrack` (v1, archivo histórico) y `gymtrack/V2` (pruebas del rediseño)
+
+---
+
+## 2. Contexto del usuario
+
+- **Objetivo**: recomposición corporal. Métrica primaria: **cintura** (meta 85 cm
+  al 31/10/2026, inicio 101 cm el 03/07). El peso corporal es de apoyo, no meta.
+- **Aquiles en rehabilitación** — tendinopatía por lesión de vóley. Innegociable.
+- Entrena 6 días/semana, sesiones de ~1h15. No es experto: espera que la app
+  le diga qué le conviene, no solo que anote lo que hizo.
+- Nutrición: 2553 kcal · 127P · 351C · 70G (revisar: se recomendó subir proteína
+  a 1.8-2 g/kg).
+
+---
+
+## 3. Reglas del entrenador (innegociables)
+
+Estas viven **en código**, validando la respuesta de la IA antes de aplicarla.
+No se confían al prompt.
+
+### Protocolo Aquiles
+- Ejercicios marcados sensibles (`aq >= 2`): **hack, búlgaras**. Nivel 1: prensa,
+  gemelo en prensa, gemelo sentado. Nivel 3 (fuera del plan): elevaciones de
+  talón en escalón — es el movimiento con más estiramiento profundo del tendón.
+- Cualquier nota que mencione "Aquiles" o "tendón" **congela las subidas 14 días**
+  en esos ejercicios, automáticamente.
+- En estos ejercicios el piso de RIR es 2. Si reporta 0-1, el entrenador corrige.
+
+### Progresión
+- Doble progresión: al llegar al tope de reps dos sesiones seguidas, sube.
+- **Máximos por semana: +5 kg en máquinas y compuestos, +2 kg en aislamientos.**
+  La app recorta cualquier propuesta que se pase.
+- Deload cada 6-8 semanas.
+
+### Nutrición
+- Si la cintura baja ≥0.5 cm por quincena → **no tocar el déficit.**
+- Estancada 2 quincenas seguidas → recortar ~150 kcal de carbos. Nunca de
+  proteína; la grasa solo hasta su piso (0.8 g/kg).
+
+### Adaptación
+- Si la frecuencia real baja de forma sostenida, **reestructurar el plan**
+  (ej. PPL 6 días → torso/pierna 3 días), no insistir con lo que no se cumple.
+  Una rutina que no se hace vale menos que una que sí.
+
+---
+
+## 4. Decisiones de producto
+
+| Decisión | Razón |
+|---|---|
+| **Fuera la racha** | Premiaba la perfección y se rompía justo cuando la persona pasaba por algo. Sustituida por **carga por grupo muscular en 14 días**, que no se rompe y es lo que la IA usa para decidir. |
+| **Fuera el bloque "Casa"** | Cumplimiento 0/3 semanas seguidas. Gemelos y abdomen se movieron **dentro del PPL**: si estás en el gym, ya estás en modo entreno. |
+| **Nunca castigar el hábito fuerte** | Se descartó bloquear el gym por no hacer casa: habría creado un incentivo perverso. |
+| **Un ejercicio a la vez** | El modo entreno usa pantalla completa, enfocado, con botón para alternar a lista. Es la pantalla más usada y se maneja con una mano. |
+| **El descanso toma la pantalla** | Es el único momento en que se mira el celular sin hacer nada más. |
+| **Historial congelado** | Cada día completado guarda su total planificado (`tp`). Cambiar la rutina **nunca** altera lo ya registrado. Bug aprendido a la mala. |
+| **La IA propone, el humano decide** | Las propuestas bajan como tarjetas con ✓ Aplicar / ✗ Rechazar. Aplicar escribe el peso de verdad. Todo queda en el diario. |
+| **Dos apps separadas** | AscentPeak y NutriTrack son productos independientes. NutriTrack espera a que AscentPeak esté maduro. |
+
+---
+
+## 5. Sistema visual
+
+- **Base**: carbón con tinte ciruela. `--bg:#17141D` · `--s1:#211C2B` ·
+  `--s2:#2A2436` · `--s3:#352E44` · `--line:#403852`
+- **Morado lavanda** `#B39DE8` — acción, pestaña activa, marca. Exclusivo: nunca
+  significa otra cosa.
+- **Cuatro colores por patrón**, no nueve por músculo:
+  empuje `#F7B489` (durazno) · tracción `#8FC0F5` · pierna `#7BE3AE` · core `#FFD98A`
+- Bebas Neue solo para números y títulos cortos. Inter para el resto.
+- Inspiración: amanecer sobre una cima (lavanda → durazno).
+
+---
+
+## 6. Modelo de datos
+
+### Catálogo (`g2_cat` / Firestore `data/cat2`)
+```
+{ id, n, pat, pri, sec[], eq, aq, w:{v, ps, nt, bw, pl}, rest }
+```
+`pat` = patrón de movimiento · `pri`/`sec` = músculo primario y secundarios ·
+`eq` = equipo · `aq` = nivel de impacto en Aquiles (0-3) ·
+`w.v` = kg numérico · `w.ps` = por lado · `w.bw` = corporal
+
+**Los pesos son numéricos y tipados**, no texto libre. Sin esto, la IA no puede
+escribir en los datos con seguridad.
+
+### Plan (`g2_plan` / Firestore `data/plan`)
+```
+{ v, since, note, days: { 1..6: { l, it:[{e, s, r, sc[]}] }, 0: descanso } }
+```
+`sc` = esquema de pesos por serie (ej. `[30,30,30,25]`) · versionado con historial.
+
+### Registro (`gt_log` / Firestore `log/{fecha}`)
+```
+{ day, prog:{exId:n}, sd:{exId:[{r, w, rir}]}, notes:[], tp, aq, light, t0, t1 }
+```
+`sd` = series reales con reps, peso y RIR · `tp` = total congelado ·
+`aq` = bandera de molestia en Aquiles
+
+### Otros
+`gt_weight_hist` (historial de cargas) · `gt_measures` (medidas) ·
+`g2_ai` (análisis) · `g2_diary` (propuestas aplicadas/rechazadas) ·
+`g2_key` (API key — **solo local, nunca sube a Firestore ni al repo**)
+
+---
+
+## 7. Plan de entrenamiento v3 (desde 2026-07-27)
+
+| Día | Sesión | Abdomen / Gemelos |
+|---|---|---|
+| Lunes | Push A | Plancha con peso (anti-extensión) |
+| Martes | Pull A | Crunch en polea arrodillado |
+| Miércoles | Pierna A | Gemelo en prensa + gemelo sentado |
+| Jueves | Push B | Elevación de piernas en máquina |
+| Viernes | Pull B | Pallof press (anti-rotación) |
+| Sábado | Pierna B | Gemelo en prensa |
+| Domingo | Descanso | — |
+
+Abdomen 4×/semana con estímulos distintos, gemelos 2×. Sin flexiones laterales
+cargadas: engrosan oblicuos y la meta es reducir cintura.
+
+---
+
+## 8. RIR (repeticiones en reserva)
+
+Al terminar la última serie de cada ejercicio, la app pregunta cuánto quedaba
+en el tanque: **0** (al fallo) · **1** (casi) · **2** (duro) · **3+** (cómodo).
+
+Lectura para el entrenador:
+- RIR 3+ con tope de reps → el peso quedó corto, subir
+- RIR 0-1 repetido → al límite, mantener o bajar
+- RIR subiendo con el mismo peso → se adaptó, toca progresar
+- En ejercicios del protocolo Aquiles, piso RIR 2
+
+---
+
+## 9. Roadmap
+
+### Hecho
+- Fase 1 — app base (calendario, contadores, cronómetro, medidas, índices)
+- Paso A — datos ricos (reps reales por serie, pesos por serie, notas, sesión ligera)
+- Fase 2 — Firebase (Auth con Google, Firestore São Paulo, reglas, sync offline-first)
+- Paso 1 y 2 — catálogo con metadatos + pesos tipados + plan versionado
+- Paso 3 — loop cerrado: la IA devuelve propuestas aplicables, no texto muerto
+- Rediseño v2 — 4 pestañas, modo entreno enfocado, mapa de calor, carga por grupo
+- RIR
+- Rebautizo a AscentPeak con paleta propia
+
+### Pendiente
+- **Paso 4 — sustitución de ejercicios.** "No puedo hacer este hoy" → la app
+  propone el equivalente correcto por patrón y músculo, respetando el filtro
+  del Aquiles. La equivalencia no es solo "mismo músculo": difieren en rango,
+  estabilidad y carga articular.
+- **Paso 5 — adaptación a la frecuencia real.** Reestructurar el plan cuando
+  la constancia baja.
+- **Paso 6 — autonomía graduada.** Dial en Ajustes: propone → aplica cargas →
+  cambia ejercicios → rediseña el plan. Siempre con barandas en código y
+  botón de revertir.
+- Fase 3 — Capacitor (APK Android): vibración en segundo plano y notificaciones.
+  Es la queja original que sigue viva.
+- NutriTrack v2 — congelada hasta que la API le quite la fricción de registrar.
+- Finanzas 2.0 — sin fecha.
+
+---
+
+## 10. Infraestructura
+
+- **Firebase**: proyecto `gymtrack-897b5`, Firestore en São Paulo, Auth con Google.
+  Reglas: `users/{uid}/{document=**}` solo si `request.auth.uid == uid`.
+  Dominio autorizado: `jh0708-cloude.github.io`.
+- **API de Claude**: modelo `claude-sonnet-4-6`, llamada directa desde el
+  navegador. ~$0.04-0.06 por análisis, menos de $0.30 al mes.
+- **Despliegue**: GitHub Pages, branch `main`, carpeta root. Ritual: respaldo →
+  subir archivos → commit → esperar el ✅ en Actions → doble cierre/apertura de
+  la app (service worker). **Subir el sw con la versión de caché bumpeada.**
+
+---
+
+## 11. Lecciones aprendidas
+
+- **Validar siempre el JS antes de empaquetar** (`node --check`). Un error de
+  sintaxis deja la app en pantalla negra.
+- **Nada de cambios retroactivos.** Los ajustes de rutina son de hoy hacia
+  adelante. Una migración mató la racha una vez.
+- **El entorno de trabajo se reinicia.** Si algo no está en GitHub, puede
+  perderse. Subir apenas se entrega.
+- **La conversación se comprime.** Por eso existe este archivo.
