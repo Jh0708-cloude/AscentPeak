@@ -83,9 +83,7 @@ nav button.on{color:var(--brand)}
 .legend i.lgd{background:var(--muted)}
 .legend i.lgi{background:var(--muted);opacity:.3}
 .legend i.lgb{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.20)}
-.loadrow.low .lv{color:var(--warn)}
-.loadrow.opt .lv{color:var(--brand)}
-.loadrow.high .lv{color:var(--push)}
+.loadrow .lf{width:12px;text-align:center;font-size:11px;color:var(--dim);flex-shrink:0}
 .shiftbtn{width:100%;background:none;border:1px dashed var(--line);border-radius:13px;padding:11px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter';margin:-4px 0 12px}
 .legend{display:flex;gap:12px;font-size:10.5px;color:var(--dim);margin-top:10px;flex-wrap:wrap}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
@@ -470,11 +468,12 @@ function rEntrenar(){
     const dr=Math.round(acc[gr].d),ay=Math.round(acc[gr].i),R=RANGO[gr];
     const cls=dr<R[0]?'low':(dr>R[1]?'high':'opt');
     const col=gcol(gr),extra=ay?'<em>+'+ay+'</em>':'';
+    const fl=cls==='low'?'↓':(cls==='high'?'↑':'');
     html+=`<div class="loadrow ${cls}"><span class="ln">${gr}</span>
     <span class="lb"><b style="left:${pc(R[0])}%;width:${pc(R[1]-R[0])}%"></b><u style="width:${pc(dr+ay)}%;background:${col}"></u><i style="width:${pc(dr)}%;background:${col}"></i></span>
-    <span class="lv">${dr}${extra}</span></div>`;
+    <span class="lf">${fl}</span><span class="lv">${dr}${extra}</span></div>`;
   });
-  html+=`<div class="legend"><span><i class="lgd"></i>directas</span><span><i class="lgi"></i>ayuda</span><span><i class="lgb"></i>rango objetivo</span><span>el número marca bajo · óptimo · alto</span></div></div>`;
+  html+=`<div class="legend"><span><i class="lgd"></i>directas</span><span><i class="lgi"></i>ayuda</span><span><i class="lgb"></i>rango objetivo</span><span>↓ por debajo del rango · ↑ por encima</span></div></div>`;
   document.getElementById('s-entrenar').innerHTML=html;
 }
 function pickDay(ds){
