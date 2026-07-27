@@ -74,9 +74,15 @@ nav button.on{color:var(--brand)}
 /* barras de carga */
 .loadrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .loadrow .ln{width:78px;font-size:11.5px;color:var(--muted);flex-shrink:0}
-.loadrow .lb{flex:1;height:8px;background:var(--s3);border-radius:99px;overflow:hidden;position:relative}
-.loadrow .lb>i{display:block;height:100%;border-radius:99px}
-.loadrow .lv{width:52px;text-align:right;font-family:'Bebas Neue';font-size:15px;color:var(--muted);flex-shrink:0}
+.loadrow .lb{flex:1;height:8px;background:var(--s3);border-radius:99px;position:relative}
+.loadrow .lb>b{position:absolute;top:-3px;bottom:-3px;background:rgba(255,255,255,.05);border-left:1px solid rgba(255,255,255,.20);border-right:1px solid rgba(255,255,255,.20);border-radius:2px;z-index:0}
+.loadrow .lb>u{position:absolute;left:0;top:0;height:100%;border-radius:99px;opacity:.3;z-index:1}
+.loadrow .lb>i{position:absolute;left:0;top:0;height:100%;border-radius:99px;z-index:2}
+.loadrow .lv{width:62px;text-align:right;font-family:'Bebas Neue';font-size:15px;color:var(--muted);flex-shrink:0}
+.loadrow .lv em{font-family:Inter,sans-serif;font-style:normal;font-size:9.5px;color:var(--dim);margin-left:2px}
+.legend i.lgd{background:var(--muted)}
+.legend i.lgi{background:var(--muted);opacity:.3}
+.legend i.lgb{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.20)}
 .loadrow.low .lv{color:var(--warn)}
 .loadrow.opt .lv{color:var(--brand)}
 .loadrow.high .lv{color:var(--push)}
@@ -288,6 +294,8 @@ const PAT={
 };
 const GRUPOS=['Pecho','Espalda','Hombro','Bíceps','Tríceps','Cuádriceps','Isquios','Glúteo','Gemelo','Core'];
 const RANGO={Pecho:[16,40],Espalda:[18,44],Hombro:[14,36],'Bíceps':[10,28],'Tríceps':[10,28],'Cuádriceps':[16,40],Isquios:[10,28],'Glúteo':[10,30],Gemelo:[8,26],Core:[8,26]};
+const GCOL={Pecho:'--push',Hombro:'--push','Tríceps':'--push',Espalda:'--pull','Bíceps':'--pull','Cuádriceps':'--leg',Isquios:'--leg','Glúteo':'--leg',Gemelo:'--leg',Core:'--core'};
+function gcol(g){return 'var('+(GCOL[g]||'--core')+')'}
 const CAT_DEF=[
  {id:1,n:'Press de pecho en máquina',pat:'push_h',pri:'Pecho',sec:['Tríceps','Hombro'],eq:'maquina',aq:0,w:{v:30,ps:true},rest:150},
  {id:2,n:'Aperturas con mancuernas',pat:'push_h',pri:'Pecho',sec:[],eq:'mancuerna',aq:0,w:{v:18,ps:true},rest:90},
@@ -384,7 +392,7 @@ function isDone(ds){const e=LOG[ds];if(!e)return false;const t=planSets(dayKeyOf
 function volOf(ds){const e=LOG[ds];if(!e||!e.sd)return 0;let v=0;Object.keys(e.sd).forEach(id=>{const x=ex(+id);(e.sd[id]||[]).forEach(s=>{const w=parseFloat(s.w)||0;v+=(s.r||0)*w*(x&&x.w.ps?2:1)})});return Math.round(v)}
 function weekOf(ds){const d=pd(ds),m=new Date(d);m.setDate(m.getDate()-((m.getDay()+6)%7));const a=[];for(let i=0;i<7;i++){const x=new Date(m);x.setDate(x.getDate()+i);a.push(tds(x))}return a}
 function loadByGroup(days){
-  const acc={};GRUPOS.forEach(g=>acc[g]=0);
+  const acc={};GRUPOS.forEach(g=>acc[g]={d:0,i:0});
   const hoy=tds();
   Object.keys(LOG).forEach(ds=>{
     if(db(ds,hoy)>days||db(ds,hoy)<0)return;
@@ -392,8 +400,8 @@ function loadByGroup(days){
     Object.keys(e.prog||{}).forEach(id=>{
       const x=ex(+id);if(!x)return;
       const n=e.prog[id]||0;
-      if(acc[x.pri]!=null)acc[x.pri]+=n;
-      (x.sec||[]).forEach(s=>{if(acc[s]!=null)acc[s]+=n*0.5});
+      if(acc[x.pri])acc[x.pri].d+=n;
+      (x.sec||[]).forEach(s=>{if(acc[s])acc[s].i+=n*0.5});
     });
   });
   return acc;
@@ -455,17 +463,18 @@ function rEntrenar(){
   });
   html+=`</div>`;
   const acc=loadByGroup(14);
-  const mx=Math.max(1,...Object.values(acc));
-  html+=`<div class="card"><div class="card-h"><h3>Carga 14 días</h3><span class="lbl">series por grupo</span></div>`;
+  const mx=Math.max(1,...GRUPOS.map(g=>acc[g].d+acc[g].i),...GRUPOS.map(g=>RANGO[g][1]));
+  const pc=n=>Math.round(n/mx*100);
+  html+=`<div class="card"><div class="card-h"><h3>Carga 14 días</h3><span class="lbl">series directas</span></div>`;
   GRUPOS.forEach(gr=>{
-    const v=Math.round(acc[gr]),R=RANGO[gr];
-    const cls=v<R[0]?'low':(v>R[1]?'high':'opt');
-    const col=cls==='low'?'var(--warn)':(cls==='high'?'var(--push)':'var(--brand)');
+    const dr=Math.round(acc[gr].d),ay=Math.round(acc[gr].i),R=RANGO[gr];
+    const cls=dr<R[0]?'low':(dr>R[1]?'high':'opt');
+    const col=gcol(gr),extra=ay?'<em>+'+ay+'</em>':'';
     html+=`<div class="loadrow ${cls}"><span class="ln">${gr}</span>
-    <span class="lb"><i style="width:${Math.round(v/mx*100)}%;background:${col}"></i></span>
-    <span class="lv">${v}</span></div>`;
+    <span class="lb"><b style="left:${pc(R[0])}%;width:${pc(R[1]-R[0])}%"></b><u style="width:${pc(dr+ay)}%;background:${col}"></u><i style="width:${pc(dr)}%;background:${col}"></i></span>
+    <span class="lv">${dr}${extra}</span></div>`;
   });
-  html+=`<div class="legend"><span><i style="background:var(--warn)"></i>bajo</span><span><i style="background:var(--brand)"></i>óptimo</span><span><i style="background:var(--push)"></i>alto</span></div></div>`;
+  html+=`<div class="legend"><span><i class="lgd"></i>directas</span><span><i class="lgi"></i>ayuda</span><span><i class="lgb"></i>rango objetivo</span><span>el número marca bajo · óptimo · alto</span></div></div>`;
   document.getElementById('s-entrenar').innerHTML=html;
 }
 function pickDay(ds){
@@ -967,7 +976,8 @@ function rCoach(){
     h+=`<div class="lbl" style="margin:16px 0 8px">Diario de cambios</div>`;
     DIARY.slice(-12).reverse().forEach(d=>{
       const x=ex(d.ex);
-      h+=`<div class="diary">${d.ok?'✓':'✗'} <b>${x?esc(x.n):d.ex}</b> ${d.ok?'→ '+d.v+' kg':'rechazado'} · ${d.d}${d.m?'<br><span style="color:var(--dim)">'+esc(d.m)+'</span>':''}</div>`;
+      const tope=d.cap?'<br><span style="color:var(--warn)">🛡️ recortado por el tope — la IA pedía '+d.cap+' kg</span>':'';
+      h+=`<div class="diary">${d.ok?'✓':'✗'} <b>${x?esc(x.n):d.ex}</b> ${d.ok?'→ '+d.v+' kg':'rechazado'} · ${d.d}${tope}${d.m?'<br><span style="color:var(--dim)">'+esc(d.m)+'</span>':''}</div>`;
     });
   }
   s.innerHTML=h;
@@ -994,7 +1004,7 @@ function buildCtx(){
   o+='\n=== MEDIDAS ===\n';
   MEAS.forEach(m=>{const h=MS[m.k]||[];if(h.length)o+=m.n+': '+h.map(x=>x.d.slice(5)+'='+x.v).join(' → ')+' '+m.u+'\n'});
   o+='\n=== CARGA POR GRUPO (series, 14 días) ===\n';
-  const acc=loadByGroup(14);GRUPOS.forEach(g=>{o+=g+': '+Math.round(acc[g])+' (rango '+RANGO[g][0]+'-'+RANGO[g][1]+')\n'});
+  const acc=loadByGroup(14);GRUPOS.forEach(g=>{o+=g+': '+Math.round(acc[g].d)+' directas (+'+Math.round(acc[g].i)+' indirectas) · rango objetivo de directas '+RANGO[g][0]+'-'+RANGO[g][1]+'\n'});
   o+='\n=== CUMPLIMIENTO 4 SEMANAS ===\n';
   for(let w=3;w>=0;w--){
     const r=new Date();r.setDate(r.getDate()-w*7);
@@ -1082,17 +1092,30 @@ function appProp(i){
   const props=ld('g2_props',[]),p=props[i];if(!p)return;
   const x=ex(p.ex);if(!x)return;
   const prev=x.w.bw?0:x.w.v;
-  x.w.v=p.valor;if(p.porLado!=null)x.w.ps=!!p.porLado;delete x.w.bw;
+  /* BARANDA 1 — protocolo Aquiles: nada sube mientras el congelamiento esté activo */
+  const fr=aqFrozen();
+  if(fr&&x.aq>=1&&p.valor>prev){
+    toast('🧊 No aplicado — '+x.n+' está congelado por Aquiles hasta el '+fr,1);
+    return;
+  }
+  /* BARANDA 2 — tope de subida: +5 kg compuestos/máquinas, +2 kg aislamientos */
+  const iso=/^iso_/.test(x.pat)||x.pat==='core',cap=iso?2:5;
+  let val=p.valor,cut=false;
+  if(prev>0&&val>prev+cap){val=prev+cap;cut=true}
+  x.w.v=val;if(p.porLado!=null)x.w.ps=!!p.porLado;delete x.w.bw;
   if(!WH[p.ex])WH[p.ex]=[];
-  WH[p.ex].push({d:tds(),v:p.valor,ps:x.w.ps,w:wLabel(x.w)});
+  WH[p.ex].push({d:tds(),v:val,ps:x.w.ps,w:wLabel(x.w)});
   if(p.esquema&&p.esquema.length){
-    [1,2,3,4,5,6].forEach(d=>{const it=(PLAN.days[d].it||[]).find(t=>t.e===p.ex);if(it)it.sc=p.esquema.slice()});
+    const esq=p.esquema.map(s=>cut&&s>val?val:s);
+    [1,2,3,4,5,6].forEach(d=>{const it=(PLAN.days[d].it||[]).find(t=>t.e===p.ex);if(it)it.sc=esq.slice()});
     save(K.plan,PLAN);
   }
-  DIARY.push({d:tds(),ex:p.ex,ok:true,v:p.valor,prev,m:p.motivo});
+  DIARY.push({d:tds(),ex:p.ex,ok:true,v:val,prev,m:p.motivo,cap:cut?p.valor:null});
   save(K.diary,DIARY);save(K.cat,CAT);save(K.wh,WH);
   props.splice(i,1);st('g2_props',props);
-  rCoach();toast('✓ Aplicado: '+x.n+' → '+p.valor+' kg');
+  rCoach();
+  if(cut)toast('✓ Aplicado con tope: '+x.n+' → '+val+' kg (pedía '+p.valor+')',1);
+  else toast('✓ Aplicado: '+x.n+' → '+val+' kg');
 }
 function rejProp(i){
   const props=ld('g2_props',[]),p=props[i];if(!p)return;
