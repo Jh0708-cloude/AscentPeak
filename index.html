@@ -447,7 +447,8 @@ function rEntrenar(){
       <button class="bigbtn" onclick="startTrain('${ds}')">${dn>=tot&&tot>0?'REVISAR ✓':(dn>0?'CONTINUAR · '+dn+'/'+tot:'EMPEZAR')}</button></div>`;
   }
   if(dn===0){
-    html+=`<button class="shiftbtn" onclick="shiftWeek('${ds}')">🔁 Recorrer rutinas +1 día (cubrir un día perdido)</button>`;
+    const _sa=shiftAmt(ds);
+    html+=`<button class="shiftbtn" onclick="shiftWeek('${ds}')">🔁 Recorrer rutinas +1 día (cubrir un día perdido)${_sa?' · vas +'+_sa:''}</button>`;
     if(hasShift(ds))html+=`<button class="shiftbtn" onclick="clearShift('${ds}')">↩ Restaurar semana estándar</button>`;
   }
   const wk=weekOf(ds);
@@ -517,19 +518,23 @@ function shiftWeek(ds){
   const ef=weekEff(ds);
   let plan='';
   for(let j=i;j<7;j++){
-    const nk=ef[j-1];
+    const nk=prevK(ef[j]);
     plan+=DS3[pd(wk[j]).getDay()]+': '+(PLAN.days[nk]?PLAN.days[nk].l:'—')+(j<6?' · ':'');
   }
-  openM(`<h2>🔁 Recorrer +1 día</h2><div class="sub">Cada día restante toma la rutina del día anterior. El domingo absorbe el hueco.</div>
+  const ac=shiftAmt(ds);
+  openM(`<h2>🔁 Recorrer +1 día</h2><div class="sub">Cada día restante retrocede una sesión del ciclo. El domingo absorbe el hueco.${ac?' Ya llevas +'+ac+'.':''}</div>
   <div class="lastline">${esc(plan)}</div>
   <div class="mb"><button onclick="closeM()">Cancelar</button><button class="ok" onclick="doShift('${ds}')">Recorrer</button></div>`);
 }
+function prevK(k){return (k+6)%7}
+function shiftAmt(ds){return (pd(ds).getDay()-dayKeyOf(ds)+7)%7}
 function doShift(ds){
   const wk=weekOf(ds),i=wk.indexOf(ds),ef=weekEff(ds);
   for(let j=i;j<7;j++){
     const x=wk[j],e=LOG[x];
     if(e&&doneSets(e)>0)continue;
-    const en=entry(x,ef[j-1]);en.day=ef[j-1];saveLog(x);
+    const nk=prevK(ef[j]);
+    const en=entry(x,nk);en.day=nk;saveLog(x);
   }
   closeM();rEntrenar();
   toast('🔁 Hoy toca '+PLAN.days[dayKeyOf(ds)].l);
