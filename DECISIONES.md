@@ -3,7 +3,7 @@
 > Documento de traspaso. Si una conversación se corta o empiezas una nueva,
 > este archivo es la fuente de verdad. Léelo antes de proponer cambios.
 >
-> Última actualización: 2026-07-27 (tarde)
+> Última actualización: 2026-07-30
 
 ---
 
@@ -93,6 +93,7 @@ No se confían al prompt.
 | **Historial congelado** | Cada día completado guarda su total planificado (`tp`). Cambiar la rutina **nunca** altera lo ya registrado. Bug aprendido a la mala. |
 | **La IA propone, el humano decide** | Las propuestas bajan como tarjetas con ✓ Aplicar / ✗ Rechazar. Aplicar escribe el peso de verdad. Todo queda en el diario. |
 | **Dos apps separadas** | AscentPeak y NutriTrack son productos independientes. NutriTrack espera a que AscentPeak esté maduro. |
+| **La cinta manda, la foto acompaña** | La cintura es la métrica; el espejo varía por sal, hinchazón y congestión post-entreno. Las fotos sirven como respaldo **mensual**, en condiciones fijas: en ayunas, misma pared y luz, de frente y de perfil, relajado. Semana a semana no muestran nada y solo frustran. |
 | **Series directas y de ayuda, separadas** | El contador sumaba la serie completa al músculo primario y media a cada secundario, pero se comparaba contra rangos pensados para trabajo **directo**. Bíceps marcaba 35 cuando de directo tenía 18: la mitad eran jalones. Ahora la barra separa los dos tramos y el semáforo mira solo el directo. |
 | **El estado nunca se dice con color** | Bajo/óptimo/alto se marca con flecha ↓ ↑ y con la banda del rango detrás de la barra. Los colores quedan reservados para el patrón. Se intentó primero pintar el número y reapareció el mismo problema: "óptimo" salía lavanda y "alto" durazno, robándole el significado a la marca y al empuje. |
 
@@ -203,12 +204,58 @@ Lectura para el entrenador:
   `appProp`, con el recorte anotado en el diario
 
 ### Pendiente
+- **Ejercicios por tiempo (isométricos).** El plan v3 metió plancha y pallof, que
+  se miden en segundos, pero el catálogo solo entiende repeticiones. Hoy la
+  plancha muestra "objetivo 30-45s reps" y pregunta "¿cuántas hiciste?" con una
+  grilla de números: funciona de casualidad porque el usuario elige segundos,
+  pero la app no sabe qué está guardando. Falta un tipo `iso` en el catálogo que
+  cambie la unidad a segundos y el texto de la pregunta. **Y afecta el conteo**:
+  una plancha de 40s suma igual que una serie de crunch, y no son equivalentes.
+  Mientras no se arregle, la carga de Core está mal medida.
+- **Registro de cardio — diseñado, no construido (27/07).** Se decidió no armarlo
+  todavía: el Aquiles está en rehabilitación y no hay carrera a la vista. Una
+  sección vacía en Actividad no sería una función, sería un recordatorio de algo
+  que no se puede hacer. El diseño queda cerrado para cuando llegue el momento:
+
+  - **Dónde**: dentro de Progreso → Actividad. No una pestaña nueva. Cada
+    elemento agregado cobra alquiler para siempre.
+  - **Registro**: `{ id, d, t, km, min, src, note }` · `t` = correr / caminar /
+    bici / otro.
+  - **`src` (manual · gps · reloj)** — lo que permite que lo escrito a mano y lo
+    capturado convivan sin migrar nada, y saber siempre qué se midió y qué se
+    estimó.
+  - **`id` único** — evita duplicados el día que se importe de un reloj, y es de
+    donde colgará la ruta cuando exista el rastreador.
+  - El ritmo (min/km) **se calcula, no se guarda.** Guardar lo que se puede
+    deducir es cómo aparecen los datos que se contradicen entre sí.
+  - Sincroniza como una colección más, igual que las medidas.
+  - El entrenador recibe km y minutos de los últimos 14 días: explica por qué
+    las piernas rindieron menos una semana.
+  - Fuera de alcance del formulario: ruta, mapa, ritmo por kilómetro, calorías.
+    Eso pertenece al rastreador GPS, no al registro manual.
+  - Candidato a evaluar: esfuerzo percibido 1-10. Es el dato que más le sirve al
+    entrenador y el único que ningún GPS puede medir.
+  - **Orden**: manual primero, rastreador GPS propio dentro del APK después,
+    relojes mucho más adelante. Health Connect queda como atajo si el plugin
+    resulta simple — leer es mucho más barato que rastrear.
 - **Series extra.** Registrar la serie de más que a veces sale (`3+1`) en vez de
   perderla. Cambio chico y alimenta directo el análisis.
 - **Paso 4 — sustitución de ejercicios.** "No puedo hacer este hoy" → la app
   propone el equivalente correcto por patrón y músculo, respetando el filtro
   del Aquiles. La equivalencia no es solo "mismo músculo": difieren en rango,
   estabilidad y carga articular.
+
+  **Caso real (27/07)**: bancas ocupadas → press militar con mancuerna (22.5 por
+  lado) sustituido por máquina de hombro de disco (15 por lado + brazo, y aun así
+  costó más). Dos reglas que salieron de ahí:
+  - **El peso del sustituto NO se registra en el histórico del original.** Son
+    ejercicios distintos: palanca, curva de resistencia y estabilización cambian.
+    Meterlo en la misma serie histórica le muestra al entrenador un salto que
+    nunca pasó, y desde ahí propone seguir subiendo.
+  - En máquinas de disco el peso incluye el brazo, que no se conoce. El número
+    sirve **solo para compararse consigo mismo** en esa máquina; nunca contra una
+    barra o mancuerna. Registrar como "X kg por lado + brazo".
+  Mientras no exista el Paso 4, la sustitución va en las notas del día.
 - **Paso 5 — adaptación a la frecuencia real.** Reestructurar el plan cuando
   la constancia baja.
 - **Paso 6 — autonomía graduada.** Dial en Ajustes: propone → aplica cargas →
@@ -252,4 +299,12 @@ Lectura para el entrenador:
   rangos de trabajo directo: casi todo salía "alto" y el panel dejó de informar.
 - **Las rutas de GitHub Pages distinguen mayúsculas.** El repo es `AscentPeak`;
   `/ascentpeak/` da 404 aunque el repo exista y el deploy esté en verde.
+- **La app está afilada para una sola persona.** Que alguien de fuera no la
+  entienda a la primera no es un defecto: es la consecuencia de estar hecha a
+  medida. La prueba que vale es si Jhair se pierde, no si se pierde un tercero.
+  Hacerla entendible para cualquiera la volvería más genérica y peor para su uso.
+- **Nada se construye "por si acaso".** Una función que no se va a usar en meses
+  ocupa lugar, confunde y envejece. El diseño se deja escrito —que es la parte
+  cara— y se construye el día que haga falta. Mismo criterio con el que salió el
+  bloque "Casa".
 - **La conversación se comprime.** Por eso existe este archivo.
