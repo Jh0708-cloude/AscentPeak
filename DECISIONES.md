@@ -3,7 +3,7 @@
 > Documento de traspaso. Si una conversación se corta o empiezas una nueva,
 > este archivo es la fuente de verdad. Léelo antes de proponer cambios.
 >
-> Última actualización: 2026-07-30
+> Última actualización: 2026-07-31
 
 ---
 
@@ -95,6 +95,8 @@ No se confían al prompt.
 | **Dos apps separadas** | AscentPeak y NutriTrack son productos independientes. NutriTrack espera a que AscentPeak esté maduro. |
 | **La cinta manda, la foto acompaña** | La cintura es la métrica; el espejo varía por sal, hinchazón y congestión post-entreno. Las fotos sirven como respaldo **mensual**, en condiciones fijas: en ayunas, misma pared y luz, de frente y de perfil, relajado. Semana a semana no muestran nada y solo frustran. |
 | **Series directas y de ayuda, separadas** | El contador sumaba la serie completa al músculo primario y media a cada secundario, pero se comparaba contra rangos pensados para trabajo **directo**. Bíceps marcaba 35 cuando de directo tenía 18: la mitad eran jalones. Ahora la barra separa los dos tramos y el semáforo mira solo el directo. |
+| **Corregir se gana, no se desbloquea** | El mis-click se arregla con un gesto que no se dispara solo: 600 ms con barra que se llena, cancelable soltando. Se descartó el PIN: es tu teléfono y tus datos, no protege de nadie, y escribirlo con las manos sudadas en medio de una serie es peor que el problema que resuelve. |
+| **Lo planificado y lo ejecutado son dos números** | `prog` cuenta series del plan (barra de avance, `tp`, día completo). `sd` guarda lo que pasó de verdad, extras incluidas. La serie extra **no toca `prog`**: si lo hiciera, cuatro extras en el primer ejercicio darían el día por terminado con la mitad de la sesión sin hacer. |
 | **El estado nunca se dice con color** | Bajo/óptimo/alto se marca con flecha ↓ ↑ y con la banda del rango detrás de la barra. Los colores quedan reservados para el patrón. Se intentó primero pintar el número y reapareció el mismo problema: "óptimo" salía lavanda y "alto" durazno, robándole el significado a la marca y al empuje. |
 
 ---
@@ -151,7 +153,17 @@ escribir en los datos con seguridad.
 En `g2_diary`, el campo `cap` guarda el valor original cuando la baranda recortó
 una propuesta. Si es `null`, la IA se mantuvo dentro del tope.
 
+### Marcas en las series (`sd`)
+`xt:1` = serie extra, fuera del plan · `ed:1` = serie corregida a mano.
+Ambas viajan al contexto de la IA como `[extra]` y `[corregida]`: una serie
+editada después no es lo mismo que una medida en el momento, y el entrenador
+tiene que poder distinguirlas. Toda corrección deja además su rastro en `notes`
+con la hora y el valor anterior.
+
 ### Carga por grupo (`loadByGroup`)
+Cuenta **desde `sd`** (series realmente registradas), con `prog` como respaldo
+para logs viejos sin series detalladas. Contaba desde `prog` hasta el 31/07, y
+por eso las series extra no existían para el contador.
 Devuelve `{ grupo: {d, i} }` — `d` = series directas (músculo primario),
 `i` = series de ayuda (secundarios, a media serie cada uno). `RANGO` se compara
 **solo contra `d`**, porque esos topes son de trabajo directo. El contexto que
@@ -202,6 +214,10 @@ Lectura para el entrenador:
 - Rebautizo a AscentPeak con paleta propia
 - **Barandas en código** (27/07) — tope de subida y bloqueo por Aquiles dentro de
   `appProp`, con el recorte anotado en el diario
+- **Corregir series + series extra** (31/07) — pulsación larga de 600 ms sobre una
+  serie ya hecha abre la hoja de corrección (reps, peso, RIR, eliminar). El botón
+  `+ Serie extra` registra la serie fuera del plan. `loadByGroup` pasó a contar
+  desde `sd`, no desde `prog`
 
 ### Pendiente
 - **Ejercicios por tiempo (isométricos).** El plan v3 metió plancha y pallof, que
@@ -238,8 +254,6 @@ Lectura para el entrenador:
   - **Orden**: manual primero, rastreador GPS propio dentro del APK después,
     relojes mucho más adelante. Health Connect queda como atajo si el plugin
     resulta simple — leer es mucho más barato que rastrear.
-- **Series extra.** Registrar la serie de más que a veces sale (`3+1`) en vez de
-  perderla. Cambio chico y alimenta directo el análisis.
 - **Paso 4 — sustitución de ejercicios.** "No puedo hacer este hoy" → la app
   propone el equivalente correcto por patrón y músculo, respetando el filtro
   del Aquiles. La equivalencia no es solo "mismo músculo": difieren en rango,
@@ -278,7 +292,7 @@ Lectura para el entrenador:
 - **Despliegue**: GitHub Pages, branch `main`, carpeta root. Ritual: respaldo →
   subir archivos → commit → esperar el ✅ en Actions → doble cierre/apertura de
   la app (service worker). **Subir el sw con la versión de caché bumpeada.**
-  Caché actual: `ascentpeak-v4`.
+  Caché actual: `ascentpeak-v6`.
 
 ---
 
@@ -307,4 +321,12 @@ Lectura para el entrenador:
   ocupa lugar, confunde y envejece. El diseño se deja escrito —que es la parte
   cara— y se construye el día que haga falta. Mismo criterio con el que salió el
   bloque "Casa".
+- **Un candado que estorba se termina esquivando.** La corrección se pensó primero
+  con clave. No protege nada — el teléfono ya es de una sola persona — y el costo
+  se paga cada vez, en medio del entreno. El gesto largo cuesta 600 ms y solo la
+  primera vez.
+- **Antes de contar, mirar de dónde sale el número.** La serie extra parecía un
+  cambio de pantalla y era del contador: `loadByGroup` leía `prog`, que es el
+  plan. Cualquier cosa que pase fuera del plan era invisible para el panel y para
+  la IA, sin avisar.
 - **La conversación se comprime.** Por eso existe este archivo.

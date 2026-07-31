@@ -100,7 +100,16 @@ nav button.on{color:var(--brand)}
 .exhead h2{font-size:28px;line-height:1.05;margin:8px 0 6px}
 .exhead .eh-meta{font-size:11.5px;color:var(--muted);margin-bottom:14px}
 .exhead .eh-meta b{color:var(--text)}
-.setrow{display:flex;align-items:center;gap:11px;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.setrow{position:relative;overflow:hidden;display:flex;align-items:center;gap:11px;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.setrow.done{cursor:pointer}
+.setrow .lpf{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent,var(--brand));opacity:.16;pointer-events:none}
+.setrow.lp .lpf{animation:lpfill .6s linear forwards}
+@keyframes lpfill{to{width:100%}}
+.setrow.xt{border-style:dashed}
+.setrow .xtag{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent,var(--brand));border:1px solid var(--line);border-radius:6px;padding:2px 5px}
+.addx{width:100%;padding:12px;border-radius:14px;border:1px dashed var(--line);background:transparent;color:var(--muted);font-weight:700;font-size:13px;font-family:'Inter';cursor:pointer;margin-bottom:10px}
+.addx:active{transform:scale(.98)}
+.fixhint{font-size:10.5px;color:var(--muted);text-align:center;margin:2px 0 12px}
 .setrow.done{opacity:.5}
 .setrow.act{border-color:var(--accent,var(--brand));background:var(--s2)}
 .setrow .sn{width:22px;font-family:'Bebas Neue';font-size:18px;color:var(--dim)}
@@ -395,9 +404,13 @@ function loadByGroup(days){
   Object.keys(LOG).forEach(ds=>{
     if(db(ds,hoy)>days||db(ds,hoy)<0)return;
     const e=LOG[ds];
-    Object.keys(e.prog||{}).forEach(id=>{
+    const ids={};
+    Object.keys(e.prog||{}).forEach(k=>ids[k]=1);
+    Object.keys(e.sd||{}).forEach(k=>ids[k]=1);
+    Object.keys(ids).forEach(id=>{
       const x=ex(+id);if(!x)return;
-      const n=e.prog[id]||0;
+      const sd=(e.sd||{})[id];
+      const n=(sd&&sd.length)?sd.length:(e.prog[id]||0);
       if(acc[x.pri])acc[x.pri].d+=n;
       (x.sec||[]).forEach(s=>{if(acc[s])acc[s].i+=n*0.5});
     });
@@ -499,7 +512,7 @@ function openDay(ds){
     h+=`<div class="lastline"><b>${dn}/${tot}</b> series · <b>${(volOf(ds)/1000).toFixed(1)} t</b> de volumen${e.t0&&e.t1?' · '+fmtMin(Math.round((e.t1-e.t0)/60000)):''}${e.light?' · 🔋 ligera':''}</div>`;
     Object.keys(e.sd||{}).forEach(id=>{
       const x=ex(+id);if(!x)return;
-      h+=`<div class="exrow"><div class="en"><b>${esc(x.n)}</b><span>${(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' (RIR '+s.rir+')':'')).join(' · ')}</span></div></div>`;
+      h+=`<div class="exrow"><div class="en"><b>${esc(x.n)}</b><span>${(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' (RIR '+s.rir+')':'')+(s.xt?'+':'')).join(' · ')}</span></div></div>`;
     });
     (e.notes||[]).forEach(n=>{h+=`<div class="diary">📝 <b>${n.t}</b> — ${esc(n.txt)}</div>`});
   }
@@ -598,14 +611,19 @@ function drawTrain(){
   <div class="eh-meta">${esc(x.pri)}${x.sec.length?' · '+x.sec.join(', '):''} — <b>${wLabel(x.w)}</b> · descanso ${Math.floor(x.rest/60)}:${String(x.rest%60).padStart(2,'0')}</div></div>`;
   if(prev)h+=`<div class="lastline">Última vez (${prev.ds.slice(5)}): <b>${prev.a.map(s=>s.r).join(', ')}</b>${prev.a[0]&&prev.a[0].w?' @ '+prev.a[0].w+' kg':''}</div>`;
   const arr=(e.sd[it.e]||[]);
+  const PL=[],XT=[];
+  arr.forEach((s,k)=>{(s.xt?XT:PL).push({s,k})});
+  const lpAttr=k=>`oncontextmenu="return false" onpointerdown="lpStart(this,${k},event)" onpointerup="lpCancel()" onpointerleave="lpCancel()" onpointercancel="lpCancel()" onpointermove="lpMove(event)"`;
+  const srTxt=r=>r.s.r+(r.s.rir!=null?'<span class="srir"> RIR '+r.s.rir+'</span>':'');
   for(let i=0;i<it.s;i++){
-    const hecho=i<done,act=i===done;
+    const rec=PL[i],hecho=!!rec,act=(!rec&&i===PL.length);
     const w=setW(it,i);
-    h+=`<div class="setrow ${hecho?'done':''} ${act?'act':''}">
+    h+=`<div class="setrow ${hecho?'done':''} ${act?'act':''}" ${hecho?lpAttr(rec.k):''}>
+      ${hecho?'<span class="lpf"></span>':''}
       <span class="sn">${i+1}</span>
-      <span class="sw">${hecho?(arr[i]&&arr[i].w?arr[i].w+' kg':wLabel(x.w)):(w!=null?w+' kg'+(x.w.ps?' × lado':''):wLabel(x.w))}
-      <small>${hecho?'hechas':'objetivo '+it.r+' reps'}</small></span>
-      <span class="sr">${hecho?(arr[i]?arr[i].r+(arr[i].rir!=null?'<span class="srir"> RIR '+arr[i].rir+'</span>':''):'✓'):'—'}</span></div>`;
+      <span class="sw">${hecho?(rec.s.w!=null?rec.s.w+' kg':wLabel(x.w)):(w!=null?w+' kg'+(x.w.ps?' × lado':''):wLabel(x.w))}
+      <small>${hecho?(rec.s.ed?'corregida':'hechas'):'objetivo '+it.r+' reps'}</small></span>
+      <span class="sr">${hecho?srTxt(rec):'—'}</span></div>`;
     if(act){
       const [a,b]=parseR(it.r);
       let reps='';
@@ -616,6 +634,17 @@ function drawTrain(){
       <div class="wedit"><input id="sw" type="number" step="0.5" inputmode="decimal" value="${w!=null?w:''}" placeholder="peso"><span class="wu">kg${x.w.ps?' × lado':''}</span></div></div>`;
     }
   }
+  XT.forEach((rec,j)=>{
+    h+=`<div class="setrow done xt" ${lpAttr(rec.k)}>
+      <span class="lpf"></span>
+      <span class="sn">+${j+1}</span>
+      <span class="sw">${rec.s.w!=null?rec.s.w+' kg':wLabel(x.w)}
+      <small>${rec.s.ed?'extra · corregida':'serie extra'}</small></span>
+      <span class="xtag">extra</span>
+      <span class="sr">${srTxt(rec)}</span></div>`;
+  });
+  if(PL.length>=it.s)h+=`<button class="addx" onclick="addExtra()">+ Serie extra</button>`;
+  if(PL.length)h+=`<div class="fixhint">Mantén pulsada una serie para corregirla</div>`;
   body.innerHTML=h;
   foot.innerHTML=`<button onclick="prevEx()" ${TR.i===0?'disabled style="opacity:.4"':''}>‹</button>
   <button onclick="openNote()">📝</button>
@@ -677,6 +706,115 @@ function recordSet(reps,w,rir){
   if(last&&TR.i<d.it.length-1)TR.i++;
   drawTrain();
   startRest(x.rest,last?'Siguiente ejercicio':'Serie '+(cur+2)+' de '+it.s);
+}
+/* ===== pulsación larga: 600 ms sobre una serie hecha ===== */
+let LP=null;
+function lpStart(el,k,ev){
+  lpCancel();
+  el.classList.add('lp');
+  LP={el,k,x:ev.clientX,y:ev.clientY,t:setTimeout(()=>{
+    if(!LP)return;
+    const kk=LP.k;LP.el.classList.remove('lp');LP=null;
+    if(navigator.vibrate)navigator.vibrate(35);
+    openFix(kk);
+  },600)};
+}
+function lpMove(ev){if(LP&&(Math.abs(ev.clientX-LP.x)>12||Math.abs(ev.clientY-LP.y)>12))lpCancel()}
+function lpCancel(){if(!LP)return;clearTimeout(LP.t);LP.el.classList.remove('lp');LP=null}
+
+/* ===== hoja de corrección · k = índice real en sd, -1 = serie extra nueva ===== */
+function openFix(k){
+  const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
+  const e=entry(ds,dk),arr=e.sd[it.e]||[];
+  const nueva=k<0;
+  const s=nueva?null:arr[k];
+  if(!nueva&&!s)return;
+  const [a,b]=parseR(it.r);
+  const ult=arr.length?arr[arr.length-1]:null;
+  const rDef=nueva?(ult&&ult.r!=null?ult.r:a):s.r;
+  let wDef=nueva?(ult&&ult.w!=null?ult.w:setW(it,it.s-1)):(s.w!=null?s.w:null);
+  const rirDef=nueva?null:(s.rir!=null?s.rir:null);
+  const esX=nueva||!!s.xt;
+  const num=arr.filter(z=>!z.xt).length;
+  const et=esX?'Serie extra':'Serie '+(arr.slice(0,k).filter(z=>!z.xt).length+1);
+  let g='';for(let r=Math.max(1,a-4);r<=b+4;r++)g+=`<button class="${r===rDef?'tgt':''}" onclick="fxR(${r},this)">${r}</button>`;
+  openM(`<h2>${nueva?'Serie extra':'Corregir'}</h2>
+  <div class="sub">${esc(x.n)} — ${nueva?'la que salió de más, fuera del plan ('+num+'+1)':et+' registrada el '+ds.slice(5)}</div>
+  <div class="pk-l" style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:4px 0 8px">Repeticiones</div>
+  <div class="reps">${g}</div>
+  <div class="wedit"><input id="fxr" type="number" inputmode="numeric" value="${rDef!=null?rDef:''}"><span class="wu">reps</span></div>
+  <div class="wedit" style="margin-top:8px"><input id="fxw" type="number" step="0.5" inputmode="decimal" value="${wDef!=null?wDef:''}" placeholder="peso"><span class="wu">kg${x.w.ps?' × lado':''}</span></div>
+  <div class="wedit" style="margin-top:8px"><select id="fxq" style="flex:1;background:var(--s1);border:1px solid var(--line);border-radius:11px;color:var(--text);padding:11px;font-size:15px;font-family:'Inter'">
+    <option value=""${rirDef==null?' selected':''}>sin RIR</option>
+    <option value="0"${rirDef===0?' selected':''}>RIR 0 · al fallo</option>
+    <option value="1"${rirDef===1?' selected':''}>RIR 1 · casi</option>
+    <option value="2"${rirDef===2?' selected':''}>RIR 2 · duro</option>
+    <option value="3"${rirDef===3?' selected':''}>RIR 3+ · cómodo</option>
+  </select><span class="wu">reserva</span></div>
+  <div class="mb"><button onclick="closeM()">Cancelar</button><button class="ok" onclick="saveFix(${k})">Guardar</button></div>
+  ${nueva?'':`<div class="mb"><button onclick="askDel(${k})">🗑️ Eliminar esta serie</button></div>`}`);
+}
+function fxR(r,el){
+  document.getElementById('fxr').value=r;
+  const p=el.parentNode;for(const b of p.children)b.classList.remove('tgt');
+  el.classList.add('tgt');
+}
+function noteFix(e,txt){
+  const n=new Date();
+  e.notes.push({t:String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'),txt});
+}
+function saveFix(k){
+  const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
+  const e=entry(ds,dk);
+  if(!e.sd[it.e])e.sd[it.e]=[];
+  const arr=e.sd[it.e];
+  const r=parseInt(document.getElementById('fxr').value,10);
+  if(isNaN(r)||r<1){toast('Pon cuántas repeticiones hiciste',1);return}
+  const wv=document.getElementById('fxw').value;
+  const q=document.getElementById('fxq').value;
+  const w=wv===''?null:parseFloat(wv);
+  const rir=q===''?null:+q;
+  const et=v=>v.r+(v.w!=null?'@'+v.w+'kg':'');
+  if(k<0){
+    const rec={r,xt:1};
+    if(w!=null)rec.w=w;
+    if(rir!=null)rec.rir=rir;
+    arr.push(rec);
+    noteFix(e,'➕ '+x.n+': serie extra '+et(rec)+' (fuera del plan)');
+    toast('Serie extra registrada');
+  }else{
+    const s=arr[k];if(!s){closeM();return}
+    const antes=et(s);
+    s.r=r;
+    if(w!=null)s.w=w;else delete s.w;
+    if(rir!=null)s.rir=rir;else delete s.rir;
+    const ahora=et(s);
+    if(antes===ahora){closeM();drawTrain();return}
+    s.ed=1;
+    noteFix(e,'✏️ '+x.n+' serie '+(k+1)+': '+antes+' → '+ahora);
+    toast('Serie corregida');
+  }
+  const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
+  saveLog(ds);closeM();drawTrain();
+}
+function addExtra(){openFix(-1)}
+function askDel(k){
+  const {ds,dk}=TR,it=PLAN.days[dk].it[TR.i];
+  const e=entry(ds,dk),s=(e.sd[it.e]||[])[k];if(!s)return;
+  openM(`<h2>¿Eliminar la serie?</h2><div class="sub">${esc(ex(it.e).n)} — ${s.r} reps${s.w!=null?' @ '+s.w+' kg':''}. ${s.xt?'Es una serie extra.':'Vuelve a quedar pendiente y te la volverá a preguntar.'}</div>
+  <div class="mb"><button onclick="closeM()">Cancelar</button><button class="ok" onclick="delSet(${k})">Eliminar</button></div>`);
+}
+function delSet(k){
+  const {ds,dk}=TR,it=PLAN.days[dk].it[TR.i],x=ex(it.e);
+  const e=entry(ds,dk),arr=e.sd[it.e]||[],s=arr[k];
+  if(!s){closeM();return}
+  const esX=!!s.xt;
+  arr.splice(k,1);
+  if(!esX)e.prog[it.e]=Math.max(0,(e.prog[it.e]||0)-1);
+  noteFix(e,'🗑️ '+x.n+': eliminada serie '+(esX?'extra ':'')+s.r+(s.w!=null?'@'+s.w+'kg':''));
+  const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
+  saveLog(ds);closeM();drawTrain();
+  toast('Serie eliminada');
 }
 function finishDay(){
   const {ds,dk}=TR,e=entry(ds,dk);
@@ -1022,7 +1160,7 @@ function buildCtx(){
     const e=LOG[ds];const dn=doneSets(e);if(!dn&&!(e.notes||[]).length)return;
     const dk=dayKeyOf(ds);
     o+='— '+DS3[pd(ds).getDay()]+' '+ds+' · '+PLAN.days[dk].l+' '+dn+'/'+planSets(dk,e)+' series'+(e.light?' [LIGERA]':'')+'\n';
-    Object.keys(e.sd||{}).forEach(id=>{const x=ex(+id);if(x)o+='   '+x.n+': '+(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')).join(', ')+'\n'});
+    Object.keys(e.sd||{}).forEach(id=>{const x=ex(+id);if(x)o+='   '+x.n+': '+(e.sd[id]||[]).map(s=>s.r+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')).join(', ')+'\n'});
     (e.notes||[]).forEach(n=>{o+='   📝 '+n.t+' — '+n.txt+'\n'});
   });
   const fr=aqFrozen();
