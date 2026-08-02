@@ -3,7 +3,7 @@
 > Documento de traspaso. Si una conversación se corta o empiezas una nueva,
 > este archivo es la fuente de verdad. Léelo antes de proponer cambios.
 >
-> Última actualización: 2026-07-31
+> Última actualización: 2026-08-02
 
 ---
 
@@ -57,7 +57,14 @@ No se confían al prompt.
   en un ejercicio `aq >= 1` **no se aplica**. Avisa hasta qué fecha y deja la
   tarjeta pendiente. Las bajadas de peso sí pasan: el candado frena subidas, no
   correcciones a la baja.
-- En estos ejercicios el piso de RIR es 2. Si reporta 0-1, el entrenador corrige.
+- **El piso de RIR es 2, y desde el 02/08 es una baranda en código, no un consejo.**
+  Registrar RIR 0 o 1 en cualquier ejercicio `aq >= 1` prende `log.aq` y **congela
+  las subidas 14 días**, exactamente igual que una nota de molestia. La serie queda
+  marcada `rf:1` y viaja al contexto como `[BAJO PISO AQ]`.
+  Vive en `aqCheck()` y corre en las tres vías de registro: serie normal, serie
+  corregida y serie extra.
+  Antes de eso era un `toast()` de dos segundos, y solo en `aq >= 2` — o sea,
+  prensa, gemelo en prensa y gemelo sentado no estaban cubiertos por nada.
 
 ### Progresión
 - Doble progresión: al llegar al tope de reps dos sesiones seguidas, sube.
@@ -123,11 +130,13 @@ No se confían al prompt.
 
 ### Catálogo (`g2_cat` / Firestore `data/cat2`)
 ```
-{ id, n, pat, pri, sec[], eq, aq, w:{v, ps, nt, bw, pl}, rest }
+{ id, n, pat, pri, sec[], eq, aq, unit, w:{v, ps, nt, bw, pl}, rest }
 ```
 `pat` = patrón de movimiento · `pri`/`sec` = músculo primario y secundarios ·
 `eq` = equipo · `aq` = nivel de impacto en Aquiles (0-3) ·
-`w.v` = kg numérico · `w.ps` = por lado · `w.bw` = corporal
+`w.v` = kg numérico · `w.ps` = por lado · `w.bw` = corporal ·
+`unit` = unidad de medida: ausente o `rep` (repeticiones, por defecto) o `seg`
+(isométricos). Ver §12.
 
 **Los pesos son numéricos y tipados**, no texto libre. Sin esto, la IA no puede
 escribir en los datos con seguridad.
@@ -140,7 +149,7 @@ escribir en los datos con seguridad.
 
 ### Registro (`gt_log` / Firestore `log/{fecha}`)
 ```
-{ day, prog:{exId:n}, sd:{exId:[{r, w, rir}]}, notes:[], tp, aq, light, t0, t1 }
+{ day, prog:{exId:n}, sd:{exId:[{r, w, rir, rf}]}, notes:[], tp, aq, light, t0, t1 }
 ```
 `sd` = series reales con reps, peso y RIR · `tp` = total congelado ·
 `aq` = bandera de molestia en Aquiles
@@ -154,7 +163,8 @@ En `g2_diary`, el campo `cap` guarda el valor original cuando la baranda recort�
 una propuesta. Si es `null`, la IA se mantuvo dentro del tope.
 
 ### Marcas en las series (`sd`)
-`xt:1` = serie extra, fuera del plan · `ed:1` = serie corregida a mano.
+`xt:1` = serie extra, fuera del plan · `ed:1` = serie corregida a mano ·
+`rf:1` = rompió el piso de RIR 2 en un ejercicio del protocolo Aquiles.
 Ambas viajan al contexto de la IA como `[extra]` y `[corregida]`: una serie
 editada después no es lo mismo que una medida en el momento, y el entrenador
 tiene que poder distinguirlas. Toda corrección deja además su rastro en `notes`
@@ -191,7 +201,13 @@ cargadas: engrosan oblicuos y la meta es reducir cintura.
 ## 8. RIR (repeticiones en reserva)
 
 Al terminar la última serie de cada ejercicio, la app pregunta cuánto quedaba
-en el tanque: **0** (al fallo) · **1** (casi) · **2** (duro) · **3+** (cómodo).
+en el tanque. **El orden en pantalla es 3+ · 2 · 1 · 0**, sin valor
+preseleccionado.
+
+El orden importa y no es estético. Estaba al revés (0 primero) y el 0 caía justo
+donde apoya el pulgar: 26 de los primeros 36 registros salieron en 0. Con esos
+datos no se puede distinguir "fui al fallo" de "toqué el botón más cercano", y
+la IA estaba decidiendo cargas sobre eso. Lo severo va lejos del pulgar.
 
 Lectura para el entrenador:
 - RIR 3+ con tope de reps → el peso quedó corto, subir
@@ -218,16 +234,58 @@ Lectura para el entrenador:
   serie ya hecha abre la hoja de corrección (reps, peso, RIR, eliminar). El botón
   `+ Serie extra` registra la serie fuera del plan. `loadByGroup` pasó a contar
   desde `sd`, no desde `prog`
+- **Ejercicios por tiempo** (02/08) — campo `unit:'seg'` en el catálogo. Cambia la
+  pregunta, la grilla pasa a saltos de 5 s, el registro muestra `45s`, y los
+  isométricos salen del cálculo de tonelaje. Hoy solo aplica a Plancha con peso (id 35)
+- **Piso de RIR con candado** (02/08) — `aqCheck()`, ver §3
+- **Orden del selector de RIR** (02/08) — ver §8
+- **Series legacy marcadas** (02/08) — `legW()`: las series con peso guardado como
+  texto viajan al contexto como `[legacy]` y el prompt le prohíbe a la IA usarlas
+  para decidir progresión. Sin migrar nada
+- **Semana en curso marcada como parcial** (02/08) — el bloque de cumplimiento
+  avisa cuándo la última semana está sin terminar. Antes la IA leía 5 sesiones
+  como 4 y lo reportaba como incumplimiento
 
 ### Pendiente
-- **Ejercicios por tiempo (isométricos).** El plan v3 metió plancha y pallof, que
-  se miden en segundos, pero el catálogo solo entiende repeticiones. Hoy la
-  plancha muestra "objetivo 30-45s reps" y pregunta "¿cuántas hiciste?" con una
-  grilla de números: funciona de casualidad porque el usuario elige segundos,
-  pero la app no sabe qué está guardando. Falta un tipo `iso` en el catálogo que
-  cambie la unidad a segundos y el texto de la pregunta. **Y afecta el conteo**:
-  una plancha de 40s suma igual que una serie de crunch, y no son equivalentes.
-  Mientras no se arregle, la carga de Core está mal medida.
+> **Orden acordado el 02/08.** De más urgente a menos. El criterio no es el
+> tamaño del cambio sino **qué tan reversible es**: lo que solo cambia lectura o
+> presentación va junto; lo que cambia la forma del dato guardado va solo, con
+> una sesión de gimnasio de por medio para probarlo.
+
+**1. Paso 5 — desacoplar la rutina del día de la semana.** Subió al primer lugar
+el 02/08. `dayKeyOf` cae al calendario (`getDay()`) y `doShift` solo escribe el
+día corrido **dentro de la semana actual**: el lunes arranca semana nueva y el
+ciclo se resetea a Push A, comiéndose lo que quedó pendiente. Como el corte
+siempre cae al final, **se pierden siempre los días 5 y 6**. Medido sobre
+06/07-02/08: días 1-4 hechos 4 veces cada uno, días 5 y 6 solo 3.
+Pierna B es donde viven prensa a 4 series, búlgaras y gemelo en prensa — parte de
+la explicación del isquios en 9 series y del gemelo estancado.
+El ciclo no debe preguntar "¿qué día es hoy?" sino **"¿cuál fue la última sesión
+que terminé?"** y ofrecer la siguiente (1→2→3→4→5→6→1). El calendario decide *si*
+se entrena, no *qué*. Con vigilante: si un día del ciclo se atrasa más de 9-10
+días, avisar — ahí sí toca reestructurar (la parte original del Paso 5).
+Toca `dayKeyOf`, `shiftWeek`, `weekOf`, `rEntrenar` y `buildCtx`. Es el cambio
+más grande de la lista.
+
+**2. Paso 4 — sustitución de ejercicios** (detalle abajo). Necesita la marca
+`sub:{id}` en la serie para que el peso del reemplazo no entre al histórico del
+original.
+
+**3. Drop sets.** La extensión de piernas se registra como 3×15 a 77 kg,
+idéntico cinco sesiones seguidas, cuando en realidad es una serie descendente
+(77/68/54/36/23). La IA lo lee como estancamiento perfecto y en algún momento va
+a proponer subir de 77 — o sea, subir el escalón más alto de un drop set.
+Campo `dr:[68,54,36,23]` dentro de la serie; el array de `sd` ya lo admite sin
+romper nada.
+
+**4. Isquios y pecho fuera de rango** (plan, no código). Al 02/08: isquios 9
+series directas en 14 días contra un piso de 10, con un solo ejercicio (curl
+femoral); pecho 41 contra un techo de 40; hombro 38 contra 36. Falta peso muerto
+rumano o buenos días en Pierna B. Va en el plan v4.
+
+**5. Peso corporal sin registrar.** Dos entradas, ambas de la primera semana de
+julio. Sin ese dato no se puede distinguir grasa perdida de músculo perdido.
+No es código: es el hábito de medirlo.
 - **Registro de cardio — diseñado, no construido (27/07).** Se decidió no armarlo
   todavía: el Aquiles está en rehabilitación y no hay carrera a la vista. Una
   sección vacía en Actividad no sería una función, sería un recordatorio de algo
@@ -269,9 +327,10 @@ Lectura para el entrenador:
   - En máquinas de disco el peso incluye el brazo, que no se conoce. El número
     sirve **solo para compararse consigo mismo** en esa máquina; nunca contra una
     barra o mancuerna. Registrar como "X kg por lado + brazo".
+  **Implementación acordada (02/08)**: marca `sub:{id}` en la serie. La serie se
+  guarda en el log del día y se ve en el historial, pero **no entra al histórico
+  de progresión** del ejercicio original.
   Mientras no exista el Paso 4, la sustitución va en las notas del día.
-- **Paso 5 — adaptación a la frecuencia real.** Reestructurar el plan cuando
-  la constancia baja.
 - **Paso 6 — autonomía graduada.** Dial en Ajustes: propone → aplica cargas →
   cambia ejercicios → rediseña el plan. Siempre con barandas en código y
   botón de revertir.
@@ -292,7 +351,7 @@ Lectura para el entrenador:
 - **Despliegue**: GitHub Pages, branch `main`, carpeta root. Ritual: respaldo →
   subir archivos → commit → esperar el ✅ en Actions → doble cierre/apertura de
   la app (service worker). **Subir el sw con la versión de caché bumpeada.**
-  Caché actual: `ascentpeak-v6`.
+  Caché actual: `ascentpeak-v7` (subida el 02/08).
 
 ---
 
@@ -329,4 +388,69 @@ Lectura para el entrenador:
   cambio de pantalla y era del contador: `loadByGroup` leía `prog`, que es el
   plan. Cualquier cosa que pase fuera del plan era invisible para el panel y para
   la IA, sin avisar.
+- **Un aviso no es una baranda, aunque esté en la pantalla.** Corolario de la
+  lección de arriba, aprendido el 02/08: el piso de RIR había salido del prompt
+  y entrado al código… como un `toast()` de dos segundos que igual guardaba el
+  dato. Sacar la regla del prompt no alcanza si lo que queda es el mismo pedido
+  con otra cara. La prueba es simple: **si el usuario puede seguir de largo, no
+  es una baranda.**
+- **El orden de los botones es parte del dato.** Ver §8. Cuando un valor se
+  captura entre serie y serie, sudado y sin mirar, la posición decide el
+  resultado tanto como la intención.
+- **Antes de programar un fix, mirar qué día cae en el calendario.** El fix del
+  Aquiles se subió un domingo pensando probarlo el lunes; el lunes era Push A y
+  no tiene un solo ejercicio sensible. Un cambio que no se puede probar hasta
+  dentro de tres días es un cambio a medio subir.
 - **La conversación se comprime.** Por eso existe este archivo.
+
+---
+
+## 12. Auditoría de datos (2026-08-02)
+
+Primera revisión completa del respaldo (22 sesiones, 06/07 al 02/08). Lo que
+salió, para no volver a descubrirlo.
+
+### Lo que va bien
+- **Cintura**: 101 → 100 → 98.8 → **98**. Quincena 1: −2.2 cm. Quincena 2: −0.8.
+  Ambas sobre el umbral de 0.5 → **no tocar el déficit**.
+  ICC 0.96 → 0.94 · ICA 0.594 → 0.576.
+- **Recomposición confirmada**: brazo 37 → 37.5, pierna 58.1 → 59, mientras la
+  cintura baja 3 cm.
+- **Adherencia**: 22 sesiones en 28 días (6/6, 6/6, 5/6, 5/6).
+
+### La meta de cintura hay que corregirla
+De 98 a 85 son 13 cm en 13 semanas: 1.0 cm/semana. El ritmo real de la última
+quincena es **0.4 cm/semana**. Proyectado al 31/10 da **92-93 cm**, no 85.
+0.4 cm/semana es el ritmo sostenible y el que preserva el músculo que está
+ganando. **Meta ajustada: ~92 cm al 31/10.** Los 85 quedan para marzo.
+
+### Datos que mienten (y por qué)
+| Qué | Síntoma | Estado |
+|---|---|---|
+| Plancha | 47/41/45 guardados como reps; 0.4 t falsas de tonelaje el 27/07 | ✅ resuelto (`unit`) |
+| RIR | 26 de 36 en 0 por posición del botón | ✅ resuelto (§8) |
+| Press militar | 22.5 → **15** → 22.5; el 15 era la máquina sustituta | ⏳ pendiente (Paso 4) |
+| Extensión de piernas | 3×15 a 77 kg idéntico ×5; es un drop set | ⏳ pendiente (`dr`) |
+| Pesos en texto | 217 series con `w` tipo string ("30 kg x lado", "Corporal" → 0 t) | ✅ marcadas `[legacy]` |
+| Cumplimiento | la semana en curso se leía como incumplimiento | ✅ resuelto |
+
+Corte limpio: **todo lo anterior al 26/07 es texto, todo lo posterior es
+numérico.** Por eso `legW()` mira el tipo del dato y no una fecha mágica — el
+dato se describe solo.
+
+### El día que lo detonó todo
+**31/07, Pierna A**: hack RIR 1, prensa RIR 0, gemelo sentado RIR 0, gemelo en
+prensa RIR 0. Cuatro violaciones del piso en una sesión, cero frenos.
+El 02/08 la IA propuso subir la prensa de 65 a 70 kg **citando ese RIR 0 como
+justificación**, y `appProp` la dejó pasar porque `aqFrozen()` devolvía null.
+El sistema usó una violación de la regla como argumento para subir carga en el
+ejercicio protegido.
+
+Simulado contra el historial completo, el nuevo `aqCheck()` habría saltado
+**exactamente una vez**: ese día.
+
+### Gemelo estancado
+Gemelo en prensa: 40 kg×lado (23/07) → 30 (26/07) → 30 (31/07). Son 60 kg
+totales contra un benchmark de ~126 kg (1.5× peso corporal) para volver a
+pliometría y vóley. Cinco semanas sin moverse, y con RIR 0 a 30 kg. Subir reps
+antes que carga.
