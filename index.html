@@ -371,6 +371,22 @@ if(!CAT){
   if(old)old.forEach(o=>{const c=CAT.find(x=>x.id===o.id);if(c&&o.w&&!c.w.bw){const m=String(o.w).match(/([\d.]+)/);if(m){const v=parseFloat(m[1]);if(v>0&&Math.abs(v-c.w.v)>0.01)c.w.v=v}}});
   st(K.cat,CAT);
 }
+/* Los metadatos del catalogo viven en CAT_DEF, pero CAT se carga de localStorage/nube.
+   Sin esto, cualquier campo nuevo agregado a CAT_DEF nunca llega al catalogo real. */
+function migCat(){
+  if(!CAT)return false;
+  let ch=false;
+  const def={};CAT_DEF.forEach(d=>def[d.id]=d);
+  CAT.forEach(c=>{
+    const d=def[c.id];if(!d)return;
+    const u=d.unit||null;
+    if((c.unit||null)!==u){if(u)c.unit=u;else delete c.unit;ch=true}
+  });
+  CAT_DEF.forEach(d=>{if(!CAT.some(c=>c.id===d.id)){CAT.push(JSON.parse(JSON.stringify(d)));ch=true}});
+  if(ch)st(K.cat,CAT);
+  return ch;
+}
+migCat();
 if(!PLAN){PLAN=JSON.parse(JSON.stringify(PLAN_DEF));st(K.plan,PLAN);PHIST.push({v:3,d:PLAN.since,note:PLAN.note});st(K.hist,PHIST)}
 if(!MS){MS={cintura:[{d:'2026-07-03',v:101}],cadera:[{d:'2026-07-03',v:105}],peso:[]};st(K.ms,MS)}
 MEAS.forEach(m=>{if(!MS[m.k])MS[m.k]=[]});
@@ -1395,7 +1411,7 @@ async function pull(){
     const dd=await F.getDocs(F.collection(F.db,'users',FBU.uid,'data'));
     dd.forEach(s=>{
       const r=s.data();if(!(r.u>(ru['data/'+s.id]||0)))return;
-      if(s.id==='cat2'){CAT=r.d;st(K.cat,CAT)}
+      if(s.id==='cat2'){CAT=r.d;const mg=migCat();st(K.cat,CAT);if(mg&&window.__ready)markDirty(K.cat)}
       if(s.id==='plan'){PLAN=r.d;st(K.plan,PLAN)}
       if(s.id==='wh'){WH=r.d;st(K.wh,WH)}
       if(s.id==='ms'){MS=r.d;st(K.ms,MS)}
