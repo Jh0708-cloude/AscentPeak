@@ -736,6 +736,7 @@ function recordSet(reps,w,rir){
   if(w!=null)rec.w=w;
   if(rir!=null)rec.rir=rir;
   if(rir!=null&&rir<2&&x.aq>=1)rec.rf=1;
+  rec.ts=Date.now();
   e.sd[it.e].push(rec);
   const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
   saveLog(ds);
@@ -824,6 +825,7 @@ function saveFix(k){
     if(rir!=null)rec.rir=rir;
     if(rir!=null&&rir<2&&x.aq>=1)rec.rf=1;
     aqCheck(e,x,rir);
+    rec.ts=Date.now();
     arr.push(rec);
     noteFix(e,'➕ '+x.n+': serie extra '+et(rec)+' (fuera del plan)');
     toast('Serie extra registrada');
@@ -1145,6 +1147,9 @@ const SYS=`Eres el entrenador personal de Jhair (Lima, Perú). Contexto:
 - Ejercicios isometricos (se registran en segundos, ej. 45s): progresan en TIEMPO, no en carga. Sube el peso solo cuando sostenga el tope del rango en las 3 series. Nunca propongas subir kg de un ejercicio marcado en segundos si aun no llega al tope de tiempo.
 - El bloque DOBLE PROGRESION ya viene CALCULADO por la app y exige MISMO PESO en sesiones consecutivas: si el peso cambio entre sesiones la racha se corta, porque cambiar el peso YA ES la progresion. No propongas subir dos veces por el mismo logro.
 - El bloque DOBLE PROGRESION: esos ejercicios cumplen la condicion de subir carga. Revisalos uno por uno. Si decides no subir alguno, explica por que en las alertas; no lo ignores en silencio.
+- El detalle de sesiones va NUMERADO en el orden REAL de ejecucion cuando el dato existe (sesiones desde el 05/08). Si aparece "orden real distinto al del plan", tenlo en cuenta: lo que se hace al final rinde menos por fatiga acumulada, y eso no es estancamiento sino posicion.
+- "descanso real" es el tiempo medido entre series. Si es MUY menor al del plan de forma repetida, el rendimiento cae por descanso insuficiente antes que por falta de carga.
+- Las sesiones anteriores al 05/08 no tienen hora por serie: ahi no hay orden ni descanso real y no debes suponerlos.
 - Marcas [REAL: X kg] y [REAL: X series]: es lo que Jhair hizo de verdad la ultima vez. MANDAN sobre el numero del catalogo y del plan, que solo se actualizan cuando el aplica una propuesta. Si el peso real es MAYOR al del catalogo, ya progreso solo: reconocelo y parte de ahi. Nunca le propongas un peso que ya supero.
 - Si las series reales difieren del plan de forma repetida, no lo ignores: o le propones actualizar el plan a lo que hace, o le explicas por que conviene volver al numero planificado.
 - Series marcadas [legacy]: el peso quedo guardado como texto libre y NO es comparable. No las uses para decidir progresion, solo como referencia.
@@ -1216,6 +1221,32 @@ function saveKey(){
 }
 /* Lo que Jhair hizo DE VERDAD la ultima vez. El catalogo y el plan solo cambian
    cuando se aplica una propuesta, asi que se quedan viejos si progresa solo. */
+/* Orden real de ejecucion y descanso real entre series, a partir de ts.
+   Las sesiones anteriores al 05/08 no tienen ts: caen al orden del plan. */
+function ordOf(e,dk){
+  const ids=Object.keys(e.sd||{});
+  const pl=((PLAN.days[dk]||{}).it||[]).map(i=>String(i.e));
+  return ids.slice().sort((a,b)=>{
+    const ta=tsMin(e.sd[a]),tb=tsMin(e.sd[b]);
+    if(ta!=null&&tb!=null)return ta-tb;
+    if(ta!=null)return -1;
+    if(tb!=null)return 1;
+    const ia=pl.indexOf(a),ib=pl.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib);
+  });
+}
+function tsMin(ser){
+  const t=(ser||[]).filter(s=>s.ts).map(s=>s.ts);
+  return t.length?Math.min.apply(null,t):null;
+}
+function restOf(ser){
+  const t=(ser||[]).filter(s=>s.ts).map(s=>s.ts).sort((a,b)=>a-b);
+  if(t.length<2)return null;
+  const g=[];for(let i=1;i<t.length;i++){const d=Math.round((t[i]-t[i-1])/1000);if(d>10&&d<900)g.push(d)}
+  if(!g.length)return null;
+  return Math.round(g.reduce((a,b)=>a+b,0)/g.length);
+}
+function mmss(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function realMap(){
   const m={},hoy=tds();
   Object.keys(LOG).sort().forEach(ds=>{
@@ -1300,7 +1331,15 @@ function buildCtx(){
     const e=LOG[ds];const dn=doneSets(e);if(!dn&&!(e.notes||[]).length)return;
     const dk=dayKeyOf(ds);
     o+='— '+DS3[pd(ds).getDay()]+' '+ds+' · '+PLAN.days[dk].l+' '+dn+'/'+planSets(dk,e)+' series'+(e.light?' [LIGERA]':'')+'\n';
-    Object.keys(e.sd||{}).forEach(id=>{const x=ex(+id);if(x)o+='   '+x.n+': '+(e.sd[id]||[]).map(s=>rLabel(x,s.r)+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(s.rf?' [BAJO PISO AQ]':'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')+(legW(s)?' [legacy]':'')).join(', ')+'\n'});
+    const ord=ordOf(e,dk),plo=((PLAN.days[dk]||{}).it||[]).map(i=>String(i.e));
+    const conTs=ord.some(id=>tsMin(e.sd[id])!=null);
+    if(conTs&&ord.join()!==plo.filter(i=>e.sd[i]).join())o+='   ⇄ orden real distinto al del plan\n';
+    ord.forEach((id,k)=>{
+      const x=ex(+id);if(!x)return;
+      const rs=restOf(e.sd[id]);
+      o+='   '+(conTs?(k+1)+'. ':'')+x.n+': '+(e.sd[id]||[]).map(s=>rLabel(x,s.r)+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(s.rf?' [BAJO PISO AQ]':'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')+(legW(s)?' [legacy]':'')).join(', ')
+       +(rs?' · descanso real ~'+mmss(rs)+' (plan '+mmss(x.rest||90)+')':'')+'\n';
+    });
     (e.notes||[]).forEach(n=>{o+='   📝 '+n.t+' — '+n.txt+'\n'});
   });
   const fr=aqFrozen();
