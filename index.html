@@ -156,6 +156,16 @@ nav button.on{color:var(--brand)}
 #rest .rb{display:flex;gap:10px;margin-top:26px}
 #rest .rb button{padding:13px 22px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:var(--text);font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter'}
 #rest .rb .skip{background:var(--brand);color:var(--onb);border-color:var(--brand)}
+#rest .rq{display:none;width:100%;max-width:440px;margin-top:20px;overflow-y:auto;max-height:44vh}
+#rest.q .rq{display:block}
+#rest.q .rt{font-size:52px;margin:2px 0}
+#rest.q .rb{margin-top:14px}
+#rest .rqi{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:11px;background:var(--s1);border:1px solid var(--line);margin-bottom:6px}
+#rest .rqi.done{opacity:.4}
+#rest .rqi.now{border-color:var(--brand);background:var(--s2)}
+#rest .rqn{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+#rest .rqe{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);background:var(--s3);padding:3px 7px;border-radius:6px;white-space:nowrap}
+#rest .rqs{font-size:12px;font-weight:700;color:var(--muted);min-width:30px;text-align:right}
 /* PROGRESO */
 .tabs{display:flex;gap:6px;margin-bottom:14px}
 .tabs button{flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--s1);color:var(--muted);font-weight:700;font-size:12.5px;cursor:pointer;font-family:'Inter'}
@@ -279,12 +289,14 @@ nav button.on{color:var(--brand)}
 </div>
 <div id="rest">
   <div class="rl">Descanso</div>
-  <div class="rt" id="rtime">0:00</div>
+  <div class="rt" id="rtime" onclick="if(document.getElementById('rest').classList.contains('q'))toggleRQ()">0:00</div>
   <div class="rn" id="rnext"></div>
   <div class="rb">
     <button onclick="addRest(30)">+30s</button>
+    <button id="rqb" onclick="toggleRQ()">👁 Lo que sigue</button>
     <button class="skip" onclick="endRest()">Continuar ›</button>
   </div>
+  <div class="rq" id="rq"></div>
 </div>
 <div class="mbg" id="mbg" onclick="if(event.target===this)closeM()"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
@@ -895,7 +907,8 @@ function startRest(sec,next){
   stopRest();RS.end=Date.now()+sec*1000;RS.v10=false;
   document.getElementById('rnext').innerHTML='A continuación<b>'+esc(next||'')+'</b>';
   document.getElementById('rest').classList.add('on');
-  document.getElementById('rest').classList.remove('fin');
+  document.getElementById('rest').classList.remove('fin','q');
+  document.getElementById('rqb').textContent='👁 Lo que sigue';
   tickRest();RS.iv=setInterval(tickRest,250);
 }
 function tickRest(){
@@ -905,6 +918,29 @@ function tickRest(){
   if(l<=0){clearInterval(RS.iv);RS.iv=null;document.getElementById('rest').classList.add('fin');
     if(navigator.vibrate)navigator.vibrate([250,100,250,100,400]);
     setTimeout(()=>{if(!RS.iv)endRest()},2500);}
+}
+/* Ver la lista del dia sin salir del descanso: sirve para mirar si la maquina
+   que sigue esta libre. Solo lectura — no cambia de ejercicio ni toca el timer. */
+const EQL={maquina:'máquina',polea:'polea',mancuerna:'mancuernas',barra:'barra',corporal:'corporal',prensa:'prensa'};
+function buildRQ(){
+  const d=PLAN.days[TR.dk];if(!d||!d.it)return '';
+  const e=LOG[TR.ds]||{};const pg=e.prog||{};
+  let h='';
+  d.it.forEach((it,k)=>{
+    const x=ex(it.e);if(!x)return;
+    const dn=pg[it.e]||0;
+    const cl=dn>=it.s?'done':(k===TR.i?'now':'todo');
+    h+='<div class="rqi '+cl+'"><span class="rqn">'+esc(x.n)+'</span>'
+      +'<span class="rqe">'+esc(EQL[x.eq]||x.eq)+'</span>'
+      +'<span class="rqs">'+dn+'/'+it.s+'</span></div>';
+  });
+  return h;
+}
+function toggleRQ(){
+  const r=document.getElementById('rest'),on=!r.classList.contains('q');
+  if(on)document.getElementById('rq').innerHTML=buildRQ();
+  r.classList.toggle('q',on);
+  document.getElementById('rqb').textContent=on?'⏱ Descanso':'👁 Lo que sigue';
 }
 function addRest(s){RS.end+=s*1000;document.getElementById('rest').classList.remove('fin');if(!RS.iv)RS.iv=setInterval(tickRest,250);tickRest()}
 function endRest(){stopRest()}
