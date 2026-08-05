@@ -1107,6 +1107,10 @@ const SYS=`Eres el entrenador personal de Jhair (Lima, Perú). Contexto:
 - Progresión: doble progresión. Máximos por semana: +5 kg máquinas/compuestos, +2 kg aislamientos. Nunca más.
 - RIR (repeticiones en reserva) de la última serie: RIR 3+ con tope de reps = peso corto, sube. RIR 0-1 repetido = al límite, mantener o bajar. RIR subiendo con mismo peso = se adaptó, toca progresar. En ejercicios del protocolo Aquiles el piso es RIR 2: si reporta 0-1 ahí, corrígelo.
 - Ejercicios isometricos (se registran en segundos, ej. 45s): progresan en TIEMPO, no en carga. Sube el peso solo cuando sostenga el tope del rango en las 3 series. Nunca propongas subir kg de un ejercicio marcado en segundos si aun no llega al tope de tiempo.
+- El bloque DOBLE PROGRESION ya viene CALCULADO por la app y exige MISMO PESO en sesiones consecutivas: si el peso cambio entre sesiones la racha se corta, porque cambiar el peso YA ES la progresion. No propongas subir dos veces por el mismo logro.
+- El bloque DOBLE PROGRESION: esos ejercicios cumplen la condicion de subir carga. Revisalos uno por uno. Si decides no subir alguno, explica por que en las alertas; no lo ignores en silencio.
+- Marcas [REAL: X kg] y [REAL: X series]: es lo que Jhair hizo de verdad la ultima vez. MANDAN sobre el numero del catalogo y del plan, que solo se actualizan cuando el aplica una propuesta. Si el peso real es MAYOR al del catalogo, ya progreso solo: reconocelo y parte de ahi. Nunca le propongas un peso que ya supero.
+- Si las series reales difieren del plan de forma repetida, no lo ignores: o le propones actualizar el plan a lo que hace, o le explicas por que conviene volver al numero planificado.
 - Series marcadas [legacy]: el peso quedo guardado como texto libre y NO es comparable. No las uses para decidir progresion, solo como referencia.
 - Series marcadas [BAJO PISO AQ]: rompio el piso de RIR 2 en ejercicio del protocolo. Nunca propongas subir carga en ese ejercicio; propone bajar o mantener.
 - La ultima semana del listado puede estar EN CURSO: si dice parcial, no la cuentes como incumplimiento.
@@ -1174,18 +1178,79 @@ function saveKey(){
   if(v)localStorage.setItem('g2_key',v);else localStorage.removeItem('g2_key');
   closeM();rCoach();toast(v?'Clave guardada 🔑':'Clave eliminada');
 }
+/* Lo que Jhair hizo DE VERDAD la ultima vez. El catalogo y el plan solo cambian
+   cuando se aplica una propuesta, asi que se quedan viejos si progresa solo. */
+function realMap(){
+  const m={},hoy=tds();
+  Object.keys(LOG).sort().forEach(ds=>{
+    const sd=(LOG[ds]||{}).sd||{};
+    Object.keys(sd).forEach(id=>{
+      const ser=sd[id]||[];if(!ser.length)return;
+      const ws=ser.filter(s=>typeof s.w==='number').map(s=>s.w);
+      const w=ws.length?Math.max.apply(null,ws):null;
+      const e=m[+id]||(m[+id]={mx:null,mxd:null});
+      e.d=ds;e.n=ser.length;e.w=w;
+      if(w!=null&&db(ds,hoy)<=21&&(e.mx==null||w>e.mx)){e.mx=w;e.mxd=ds}
+    });
+  });
+  return m;
+}
+/* El rango de reps depende del DIA: press militar es 6-8 en Push A y 8-10 en Push B */
+function rngFor(id,ds){
+  const it=((PLAN.days[dayKeyOf(ds)]||{}).it||[]).find(t=>t.e===id);
+  return it?parseR(it.r):null;
+}
+/* Doble progresion calculada en codigo, no dejada a criterio de la IA:
+   cuantas sesiones seguidas cerro TODAS las series en el tope del rango. */
+function dblProg(){
+  const out=[],hoy=tds();
+  CAT.forEach(x=>{
+    if(uOf(x)!=='rep')return;
+    const ses=Object.keys(LOG).sort().filter(ds=>(((LOG[ds]||{}).sd||{})[x.id]||[]).length);
+    let n=0,pw=null,a=null,b=null,last=null;
+    for(let k=ses.length-1;k>=0;k--){
+      const ds=ses[k];
+      if(db(ds,hoy)>21)break;                            /* fuera de ventana */
+      const ser=LOG[ds].sd[x.id],r=rngFor(x.id,ds);
+      if(!r)break;
+      const ws=ser.filter(v=>typeof v.w==='number').map(v=>v.w);
+      const w=ws.length?Math.max.apply(null,ws):(x.w.bw?0:null);
+      if(w==null)break;                                  /* legacy o sin peso */
+      if(!ser.every(v=>(v.r||0)>=r[1]))break;            /* no cerró en el tope */
+      if(pw!==null&&Math.abs(w-pw)>0.01)break;           /* peso distinto: corta */
+      pw=w;a=r[0];b=r[1];if(!last)last=ds;n++;
+    }
+    if(n>=2)out.push({x:x,n:n,a:a,b:b,w:pw,d:last});
+  });
+  return out;
+}
 function buildCtx(){
   const hoy=tds();
+  const REAL=realMap();
   let o='=== CATÁLOGO (id · ejercicio · patrón · carga) ===\n';
-  CAT.forEach(x=>{o+=x.id+' · '+x.n+' · '+PAT[x.pat].n+' · '+wLabel(x.w)+(uOf(x)==='seg'?' [SEGUNDOS]':'')+(x.aq>=2?' [AQUILES]':'')+'\n'});
+  CAT.forEach(x=>{
+    const r=REAL[x.id];let mk='';
+    if(r&&r.w!=null&&uOf(x)!=='seg'&&x.w.v!=null&&(Math.abs(r.w-x.w.v)>0.01||(r.mx!=null&&r.mx>r.w+0.01)))
+      mk=' [REAL: '+r.w+' kg el '+r.d.slice(5)+(r.mx!=null&&r.mx>r.w+0.01?' · máx '+r.mx+' el '+r.mxd.slice(5):'')+']';
+    o+=x.id+' · '+x.n+' · '+PAT[x.pat].n+' · '+wLabel(x.w)+mk+(uOf(x)==='seg'?' [SEGUNDOS]':'')+(x.aq>=2?' [AQUILES]':'')+'\n';
+  });
   o+='\n=== PLAN v'+PLAN.v+' (desde '+PLAN.since+') ===\n';
   [1,2,3,4,5,6].forEach(d=>{
-    o+=DIAS[d]+' — '+PLAN.days[d].l+': '+PLAN.days[d].it.map(i=>{const x=ex(i.e);return (x?x.n:i.e)+' '+i.s+'×'+i.r+(i.sc?' ['+i.sc.join('/')+']':'')}).join(' · ')+'\n';
+    o+=DIAS[d]+' — '+PLAN.days[d].l+': '+PLAN.days[d].it.map(i=>{
+      const x=ex(i.e),r=REAL[i.e];
+      return (x?x.n:i.e)+' '+i.s+'×'+i.r+(i.sc?' ['+i.sc.join('/')+']':'')+(r&&r.n!==i.s?' [REAL: '+r.n+' series]':'');
+    }).join(' · ')+'\n';
   });
   o+='\n=== MEDIDAS ===\n';
   MEAS.forEach(m=>{const h=MS[m.k]||[];if(h.length)o+=m.n+': '+h.map(x=>x.d.slice(5)+'='+x.v).join(' → ')+' '+m.u+'\n'});
   o+='\n=== CARGA POR GRUPO (series, 14 días) ===\n';
   const acc=loadByGroup(14);GRUPOS.forEach(g=>{o+=g+': '+Math.round(acc[g].d)+' directas (+'+Math.round(acc[g].i)+' indirectas) · rango objetivo de directas '+RANGO[g][0]+'-'+RANGO[g][1]+'\n'});
+  const dp=dblProg();
+  o+='\n=== DOBLE PROGRESIÓN (calculado por la app) ===\n';
+  if(!dp.length)o+='Ningún ejercicio cumple la condición de subir.\n';
+  else dp.forEach(p=>{
+    o+=p.x.n+' (id '+p.x.id+'): '+p.n+' sesiones seguidas cerrando TODAS las series en el tope de '+p.b+' reps AL MISMO PESO ('+p.w+' kg, última el '+p.d.slice(5)+') · rango '+p.a+'-'+p.b+' → CUMPLE CONDICIÓN DE SUBIR'+(p.x.aq>=1?' [AQUILES: solo si no está congelado]':'')+'\n';
+  });
   o+='\n=== CUMPLIMIENTO 4 SEMANAS ===\n';
   for(let w=3;w>=0;w--){
     const r=new Date();r.setDate(r.getDate()-w*7);

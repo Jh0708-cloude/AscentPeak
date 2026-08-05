@@ -3,7 +3,7 @@
 > Documento de traspaso. Si una conversación se corta o empiezas una nueva,
 > este archivo es la fuente de verdad. Léelo antes de proponer cambios.
 >
-> Última actualización: 2026-08-02
+> Última actualización: 2026-08-04
 
 ---
 
@@ -141,6 +141,13 @@ No se confían al prompt.
 **Los pesos son numéricos y tipados**, no texto libre. Sin esto, la IA no puede
 escribir en los datos con seguridad.
 
+**`CAT_DEF` es semilla, no fuente.** El catálogo real vive en `localStorage`
+(`g2_cat`) y en Firestore (`data/cat2`); `CAT_DEF` solo se usa la primera vez.
+Por eso existe **`migCat()`** (04/08): al arrancar y después de cada sync copia
+los metadatos nuevos de `CAT_DEF` al catálogo guardado y lo vuelve a subir. Sin
+esa función, cualquier campo agregado a `CAT_DEF` nunca llega al dispositivo —
+fue exactamente lo que pasó con `unit` el 03/08.
+
 ### Plan (`g2_plan` / Firestore `data/plan`)
 ```
 { v, since, note, days: { 1..6: { l, it:[{e, s, r, sc[]}] }, 0: descanso } }
@@ -242,6 +249,28 @@ Lectura para el entrenador:
 - **Series legacy marcadas** (02/08) — `legW()`: las series con peso guardado como
   texto viajan al contexto como `[legacy]` y el prompt le prohíbe a la IA usarlas
   para decidir progresión. Sin migrar nada
+- **`migCat()`** (04/08) — ver §6. El fix de `unit` del 02/08 se subió pero nunca
+  llegó al catálogo del teléfono; se detectó comparando el respaldo del 04/08
+- **Lo real vs. lo planificado en el contexto** (04/08) — `realMap()` agrega
+  `[REAL: X kg el DD-MM]` a la línea del catálogo y `[REAL: X series]` a la del
+  plan cuando difieren. El catálogo y el plan solo se actualizan al aplicar una
+  propuesta, así que se quedaban viejos cuando Jhair progresaba solo.
+  Lleva además el **máximo reciente** (21 días) cuando supera al último dato:
+  `[REAL: 40 kg el 31-07 · máx 60 el 26-07]`. Sin eso, un día flojo borra el techo
+  y la IA felicita una subida que en realidad es un retroceso — pasó con el hip
+  thrust (pico 60, actual 40) y con la prensa (pico 80, actual 75)
+- **Doble progresión calculada en código** (04/08) — `dblProg()` entrega la
+  conclusión ya hecha en un bloque propio. Antes la regla vivía solo en el prompt
+  y la IA tenía que deducirla de listas de reps crudas — no lo hacía.
+  **Corregida el mismo día**: la primera versión contaba solo las repeticiones e
+  ignoraba a qué peso se hicieron. Marcaba 12 ejercicios; de esos, jalón al pecho
+  (50 → 60 kg) ya había progresado y prensa (80 → 75 kg) había *retrocedido*, y a
+  ambos les proponía subir. Contando solo sesiones consecutivas **al mismo peso
+  numérico**, quedan 5 legítimos. Cambiar el peso corta la racha, porque cambiar
+  el peso ya *es* la progresión
+- **`rngFor()`** (04/08) — el rango de reps se busca según el día de la sesión.
+  Press militar es 6-8 en Push A y 8-10 en Push B; la versión anterior se quedaba
+  con el último rango que encontraba y evaluaba los dos días contra 8-10
 - **Semana en curso marcada como parcial** (02/08) — el bloque de cumplimiento
   avisa cuándo la última semana está sin terminar. Antes la IA leía 5 sesiones
   como 4 y lo reportaba como incumplimiento
@@ -278,12 +307,20 @@ a proponer subir de 77 — o sea, subir el escalón más alto de un drop set.
 Campo `dr:[68,54,36,23]` dentro de la serie; el array de `sd` ya lo admite sin
 romper nada.
 
-**4. Isquios y pecho fuera de rango** (plan, no código). Al 02/08: isquios 9
+**4. Escritura del progreso al catálogo y al plan.** Lo del 04/08 resolvió la
+**lectura** (la IA ya ve lo real), no la **escritura**. `x.w.v` y el `sc` del plan
+siguen cambiando solo con ✓ Aplicar. Consecuencias vivas: la pantalla de entreno
+precarga el peso viejo (`setW` mira `it.sc` o `x.w.v`, nunca la última sesión) y
+el tope de +5 kg de la baranda se calcula desde un número desactualizado.
+Necesita reglas antes de escribir: no contar sustitutos, ni series `legacy`, ni
+isométricos. Va después de `sub` porque depende de esa marca.
+
+**5. Isquios y pecho fuera de rango** (plan, no código). Al 02/08: isquios 9
 series directas en 14 días contra un piso de 10, con un solo ejercicio (curl
 femoral); pecho 41 contra un techo de 40; hombro 38 contra 36. Falta peso muerto
 rumano o buenos días en Pierna B. Va en el plan v4.
 
-**5. Peso corporal sin registrar.** Dos entradas, ambas de la primera semana de
+**6. Peso corporal sin registrar.** Dos entradas, ambas de la primera semana de
 julio. Sin ese dato no se puede distinguir grasa perdida de músculo perdido.
 No es código: es el hábito de medirlo.
 - **Registro de cardio — diseñado, no construido (27/07).** Se decidió no armarlo
@@ -351,7 +388,7 @@ No es código: es el hábito de medirlo.
 - **Despliegue**: GitHub Pages, branch `main`, carpeta root. Ritual: respaldo →
   subir archivos → commit → esperar el ✅ en Actions → doble cierre/apertura de
   la app (service worker). **Subir el sw con la versión de caché bumpeada.**
-  Caché actual: `ascentpeak-v7` (subida el 02/08).
+  Caché actual: `ascentpeak-v11` (subida el 04/08).
 
 ---
 
@@ -401,6 +438,31 @@ No es código: es el hábito de medirlo.
   Aquiles se subió un domingo pensando probarlo el lunes; el lunes era Push A y
   no tiene un solo ejercicio sensible. Un cambio que no se puede probar hasta
   dentro de tres días es un cambio a medio subir.
+- **La app guardaba, pero no leía.** Los tres huecos del 04/08 —peso, series y
+  repeticiones— eran el mismo: el dato quedaba bien registrado en el log y nunca
+  se comparaba con lo planificado. Registrar no es entrenar. Cada número que se
+  guarda tiene que tener alguien que lo lea y saque una conclusión, o es archivo
+  muerto que además da falsa sensación de control.
+- **Una regla que no se calcula no existe, aunque esté en el prompt.** La doble
+  progresión llevaba semanas escrita en `SYS` y ningún ejercicio subió por ella:
+  la IA tenía que deducirla mirando listas de reps sesión por sesión. La versión
+  corregida le entrega el resultado ya calculado. Segunda variante de la lección
+  de las barandas: **el prompt sirve para criterio, no para aritmética.**
+- **Lo que se despliega no es lo que corre.** El fix de `unit` se subió a GitHub,
+  el commit salió verde y el código estaba correcto — y aun así nunca se ejecutó,
+  porque el catálogo se carga de `localStorage` y `CAT_DEF` es solo semilla.
+  **Verificar contra el respaldo, no contra el repo ni contra la pantalla.**
+- **`node --check` valida la sintaxis, no la aritmética.** `dblProg()` se subió
+  sintácticamente perfecta y contaba mal: le proponía subir carga a un ejercicio
+  donde Jhair acababa de bajar el peso. El error no lo encontró ninguna revisión
+  de código sino **ejecutar la función contra el respaldo real en Node** e imprimir
+  la salida. Desde el 04/08, toda función que calcule algo se prueba así antes de
+  subirse: extraerla, correrla con los datos de verdad, leer el resultado.
+  El riesgo peligroso no es la pantalla negra —esa se ve en dos segundos— sino el
+  código correcto que calcula mal en silencio.
+- **La sospecha del usuario vale más que la lectura del código.** Los tres huecos
+  del 04/08 salieron de "me parece que no lo reconoce", no de una auditoría. Quien
+  usa la app todos los días detecta el desfase antes de poder explicarlo.
 - **La conversación se comprime.** Por eso existe este archivo.
 
 ---
@@ -448,6 +510,26 @@ ejercicio protegido.
 
 Simulado contra el historial completo, el nuevo `aqCheck()` habría saltado
 **exactamente una vez**: ese día.
+
+### Segunda tanda de hallazgos (04/08)
+Los tres salieron de una sospecha de Jhair, no de revisar código. Mismo origen:
+**el catálogo y el plan solo se actualizan al aplicar una propuesta.**
+
+| Qué | Medido | Estado |
+|---|---|---|
+| Peso real > catálogo | 9 ejercicios desfasados (fondos 52→60, jalón 55→60, búlgaras 15→20, prensa 70→75, hip thrust 35→40…) | ✅ `[REAL: X kg]` |
+| Series reales ≠ plan | 8 sesiones. Press militar 4 series en vez de 3 **las 4 veces**; remo sentado 3 en vez de 4 | ✅ `[REAL: X series]` |
+| Tope de reps sin subir carga | 12 ejercicios en la primera medición; **5 reales** al exigir mismo peso | ✅ `dblProg()` corregida |
+
+La marca `[REAL]` funciona en las dos direcciones: gemelo en prensa figura
+`40 kg [REAL: 30 kg]`, que es el estancamiento de §12 visto desde el otro lado.
+
+Los 5 legítimos al 04/08: aperturas (17.5 kg), cruce en polea alta (20), pájaros
+(6), remo sentado en polea (50) y extensión de piernas (77).
+
+**Trampa conocida**: extensión de piernas cumple la condición de doble progresión
+de forma perfecta (15/15/15 ×5 a 77 kg) porque es un drop set mal registrado.
+Hasta que exista `dr`, esa propuesta hay que rechazarla a mano.
 
 ### Gemelo estancado
 Gemelo en prensa: 40 kg×lado (23/07) → 30 (26/07) → 30 (31/07). Son 60 kg
