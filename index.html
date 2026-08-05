@@ -117,6 +117,11 @@ nav button.on{color:var(--brand)}
 .setrow .sw{flex:1;font-size:13.5px;font-weight:600}
 .setrow .sw small{display:block;font-size:10.5px;color:var(--muted);font-weight:400;margin-top:1px}
 .setrow .sr{font-family:'Bebas Neue';font-size:19px;color:var(--brand)}
+.picker.drop{border-color:var(--leg)}
+.drtop{font-size:12px;color:var(--mut);margin:-2px 0 8px;display:flex;flex-wrap:wrap;gap:10px}
+.drtop b{color:var(--tx)}
+.drdone{opacity:.75}
+.sdr{color:var(--leg);font-size:11px;letter-spacing:.3px}
 .picker{background:var(--s2);border:1px solid var(--accent,var(--brand));border-radius:16px;padding:14px;margin:4px 0 12px}
 .picker .pk-l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:9px}
 .reps{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px}
@@ -337,7 +342,7 @@ const CAT_DEF=[
  {id:19,n:'Curl Zottman',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'mancuerna',aq:0,w:{v:12,ps:true},rest:90},
  {id:20,n:'Curl predicador',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'maquina',aq:0,w:{v:15,ps:true},rest:90},
  {id:21,n:'Curl en polea alta',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'polea',aq:0,w:{v:20,ps:true},rest:90},
- {id:22,n:'Extensión de piernas',pat:'iso_leg',pri:'Cuádriceps',sec:[],eq:'maquina',aq:0,w:{v:77},rest:90},
+ {id:22,n:'Extensión de piernas',pat:'iso_leg',pri:'Cuádriceps',sec:[],eq:'maquina',aq:0,w:{v:77},dr:[64,50,36,23],rest:90},
  {id:23,n:'Curl femoral',pat:'iso_leg',pri:'Isquios',sec:[],eq:'maquina',aq:0,w:{v:32,nt:'echado'},rest:90},
  {id:24,n:'Hack',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'maquina',aq:2,w:{v:30,ps:true},rest:150},
  {id:25,n:'Búlgaras con carga',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'mancuerna',aq:2,w:{v:15,ps:true,nt:'rehab'},rest:150},
@@ -357,10 +362,10 @@ const CAT_DEF=[
 const PLAN_DEF={v:3,since:'2026-07-27',note:'Abdomen y gemelos integrados al PPL. Casa eliminada.',days:{
  1:{l:'Push A',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:2,s:3,r:'10-12',sc:[18,16,16]},{e:3,s:3,r:'12-15'},{e:6,s:4,r:'6-8'},{e:7,s:3,r:'12-15'},{e:11,s:3,r:'8-10'},{e:12,s:3,r:'10-12'},{e:35,s:3,r:'30-45s'}]},
  2:{l:'Pull A',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:15,s:4,r:'8-10'},{e:17,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:18,s:3,r:'8-10',sc:[16,14,14]},{e:21,s:3,r:'12-15',sc:[20,20,15]},{e:36,s:3,r:'12-15'}]},
- 3:{l:'Pierna A',it:[{e:22,s:3,r:'12-15'},{e:24,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
+ 3:{l:'Pierna A',it:[{e:22,s:3,r:'6-8'},{e:24,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
  4:{l:'Push B',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:4,s:3,r:'12-15'},{e:5,s:3,r:'12-15'},{e:6,s:3,r:'8-10'},{e:8,s:3,r:'12-15'},{e:13,s:3,r:'8-10',sc:[55,50,50]},{e:10,s:3,r:'10-12'},{e:33,s:3,r:'12-15'}]},
  5:{l:'Pull B',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:16,s:4,r:'8-10'},{e:15,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:20,s:3,r:'8-10'},{e:19,s:3,r:'10-12'},{e:37,s:3,r:'10-12 x lado'}]},
- 6:{l:'Pierna B',it:[{e:22,s:3,r:'12-15'},{e:26,s:4,r:'10-12',sc:[60,77,77,77]},{e:25,s:3,r:'8-10'},{e:23,s:3,r:'10-12'},{e:28,s:3,r:'12-15'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:34,s:3,r:'15-20'}]},
+ 6:{l:'Pierna B',it:[{e:22,s:3,r:'6-8'},{e:26,s:4,r:'10-12',sc:[60,77,77,77]},{e:25,s:3,r:'8-10'},{e:23,s:3,r:'10-12'},{e:28,s:3,r:'12-15'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:34,s:3,r:'15-20'}]},
  0:{l:'Descanso',it:[]}
 }};
 const MEAS=[
@@ -391,8 +396,12 @@ function migCat(){
   const def={};CAT_DEF.forEach(d=>def[d.id]=d);
   CAT.forEach(c=>{
     const d=def[c.id];if(!d)return;
-    const u=d.unit||null;
-    if((c.unit||null)!==u){if(u)c.unit=u;else delete c.unit;ch=true}
+    /* metadatos que la semilla manda sobre el catalogo guardado */
+    ['unit','dr','aq','pat','pri','sec','eq'].forEach(f=>{
+      const v=d[f]===undefined?null:d[f];
+      const cur=c[f]===undefined?null:c[f];
+      if(JSON.stringify(cur)!==JSON.stringify(v)){if(v===null)delete c[f];else c[f]=JSON.parse(JSON.stringify(v));ch=true}
+    });
   });
   CAT_DEF.forEach(d=>{if(!CAT.some(c=>c.id===d.id)){CAT.push(JSON.parse(JSON.stringify(d)));ch=true}});
   if(ch)st(K.cat,CAT);
@@ -418,6 +427,10 @@ function pgroup(id){const e=ex(id);return e&&PAT[e.pat]?PAT[e.pat].g:'core'}
 function dayGroup(dk){const it=(PLAN.days[dk]||{it:[]}).it;if(!it.length)return null;const c={};it.forEach(i=>{const g=pgroup(i.e);c[g]=(c[g]||0)+i.s});let best=null,mx=0;Object.keys(c).forEach(g=>{if(g!=='core'&&c[g]>mx){mx=c[g];best=g}});return best}
 function uOf(x){return x&&x.unit?x.unit:'rep'}
 function legW(s){return s&&typeof s.w==='string'}
+/* escalera de drop set declarada en el catalogo (pesos planificados de los descensos) */
+function drLad(x){return (x&&Array.isArray(x.dr)&&x.dr.length&&uOf(x)==='rep')?x.dr:null}
+/* tonelaje de los descensos de una serie */
+function drVol(s,ps){return (Array.isArray(s.dr)?s.dr:[]).reduce((a,d)=>a+(d.r||0)*(parseFloat(d.w)||0)*(ps?2:1),0)}
 function rLabel(x,r){return uOf(x)==='seg'?r+'s':r}
 function wLabel(w){if(!w)return '—';if(w.bw)return w.pl?'Corporal + disco':'Corporal';return w.v+' kg'+(w.ps?' × lado':'')+(w.nt?' ('+w.nt+')':'')}
 function setW(it,i){const e=ex(it.e);if(!e)return null;if(e.w.bw)return null;if(it.sc&&it.sc[i]!=null)return it.sc[i];if(it.sc&&it.sc.length)return it.sc[it.sc.length-1];return e.w.v}
@@ -427,7 +440,7 @@ function dayKeyOf(ds){const e=LOG[ds];return e&&e.day!=null?e.day:pd(ds).getDay(
 function doneSets(e){return Object.values((e&&e.prog)||{}).reduce((a,b)=>a+b,0)}
 function planSets(dk,e){if(e&&e.tp!=null)return e.tp;return (PLAN.days[dk]||{it:[]}).it.reduce((a,i)=>a+i.s,0)}
 function isDone(ds){const e=LOG[ds];if(!e)return false;const t=planSets(dayKeyOf(ds),e);return t>0&&doneSets(e)>=t}
-function volOf(ds){const e=LOG[ds];if(!e||!e.sd)return 0;let v=0;Object.keys(e.sd).forEach(id=>{const x=ex(+id);if(uOf(x)==='seg')return;(e.sd[id]||[]).forEach(s=>{const w=parseFloat(s.w)||0;v+=(s.r||0)*w*(x&&x.w.ps?2:1)})});return Math.round(v)}
+function volOf(ds){const e=LOG[ds];if(!e||!e.sd)return 0;let v=0;Object.keys(e.sd).forEach(id=>{const x=ex(+id);if(uOf(x)==='seg')return;(e.sd[id]||[]).forEach(s=>{const w=parseFloat(s.w)||0;v+=(s.r||0)*w*(x&&x.w.ps?2:1);v+=drVol(s,x&&x.w.ps)})});return Math.round(v)}
 function weekOf(ds){const d=pd(ds),m=new Date(d);m.setDate(m.getDate()-((m.getDay()+6)%7));const a=[];for(let i=0;i<7;i++){const x=new Date(m);x.setDate(x.getDate()+i);a.push(tds(x))}return a}
 function loadByGroup(days){
   const acc={};GRUPOS.forEach(g=>acc[g]={d:0,i:0});
@@ -645,7 +658,7 @@ function drawTrain(){
   const PL=[],XT=[];
   arr.forEach((s,k)=>{(s.xt?XT:PL).push({s,k})});
   const lpAttr=k=>`oncontextmenu="return false" onpointerdown="lpStart(this,${k},event)" onpointerup="lpCancel()" onpointerleave="lpCancel()" onpointercancel="lpCancel()" onpointermove="lpMove(event)"`;
-  const srTxt=r=>rLabel(x,r.s.r)+(r.s.rir!=null?'<span class="srir"> RIR '+r.s.rir+'</span>':'');
+  const srTxt=r=>rLabel(x,r.s.r)+(Array.isArray(r.s.dr)&&r.s.dr.length?'<span class="sdr"> \u25be'+r.s.dr.map(d=>d.r).join('\u00b7')+'</span>':'')+(r.s.rir!=null?'<span class="srir"> RIR '+r.s.rir+'</span>':'');
   for(let i=0;i<it.s;i++){
     const rec=PL[i],hecho=!!rec,act=(!rec&&i===PL.length);
     const w=setW(it,i);
@@ -660,11 +673,20 @@ function drawTrain(){
       const seg=uOf(x)==='seg',step=seg?5:1;
       const lo=seg?Math.max(5,Math.round((a-10)/5)*5):Math.max(1,a-3);
       const hi=seg?b+15:b+2;
+      const lad=drLad(x),enDr=!!(DRP&&lad);
       let reps='';
       for(let r=lo;r<=hi;r+=step)reps+=`<button class="${r>=a&&r<=b?'tgt':''}" onclick="doSet(${r})">${r}${seg?'s':''}</button>`;
-      h+=`<div class="picker"><div class="pk-l">Serie ${i+1} · ${seg?'¿cuántos segundos aguantaste?':'¿cuántas hiciste?'}</div>
-      <div class="reps">${reps}</div>
-      <div class="wedit"><input id="sw" type="number" step="0.5" inputmode="decimal" value="${w!=null?w:''}" placeholder="peso"><span class="wu">kg${x.w.ps?' × lado':''}</span></div></div>`;
+      if(enDr){
+        const j=DRP.dr.length,wd=lad[j];
+        const hechos=DRP.dr.map((d,q)=>`<span class="drdone">${lad[q]} kg → <b>${d.r}</b></span>`).join('');
+        h+=`<div class="picker drop"><div class="pk-l">↓ Descenso ${j+1} de ${lad.length} · <b>${wd} kg</b> — ¿cuántas hiciste?</div>
+        <div class="drtop">Arriba: ${DRP.w!=null?DRP.w+' kg':''} → <b>${DRP.r}</b>${hechos}</div>
+        <div class="reps">${reps}</div></div>`;
+      }else{
+        h+=`<div class="picker"><div class="pk-l">Serie ${i+1} · ${seg?'¿cuántos segundos aguantaste?':'¿cuántas hiciste?'}${lad?' <small>(drop set de '+(lad.length+1)+' escalones)</small>':''}</div>
+        <div class="reps">${reps}</div>
+        <div class="wedit"><input id="sw" type="number" step="0.5" inputmode="decimal" value="${w!=null?w:''}" placeholder="peso"><span class="wu">kg${x.w.ps?' × lado':''}</span></div></div>`;
+      }
     }
   }
   XT.forEach((rec,j)=>{
@@ -684,17 +706,34 @@ function drawTrain(){
   <button class="fnext" onclick="nextEx()">${TR.i>=d.it.length-1?'Terminar':'Siguiente ›'}</button>`;
   body.scrollTop=0;
 }
-function prevEx(){if(TR.i>0){TR.i--;drawTrain()}}
+function prevEx(){if(DRP&&!confirm('Hay un drop set a medias. ¿Descartarlo?'))return;DRP=null;if(TR.i>0){TR.i--;drawTrain()}}
 function nextEx(){
+  if(DRP&&!confirm('Hay un drop set a medias. ¿Descartarlo?'))return;
+  DRP=null;
   const d=PLAN.days[TR.dk];
   if(TR.i<d.it.length-1){TR.i++;drawTrain()}
   else finishDay();
 }
+let DRP=null;
 function doSet(reps){
   const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
   const e=entry(ds,dk);
   const cur=e.prog[it.e]||0;
   if(cur>=it.s)return;
+  const lad=drLad(x);
+  if(lad){
+    if(!DRP){
+      const wi=document.getElementById('sw');
+      DRP={r:reps,w:wi&&wi.value!==''?parseFloat(wi.value):setW(it,cur),dr:[]};
+      if(navigator.vibrate)navigator.vibrate(15);
+      drawTrain();return;
+    }
+    DRP.dr.push({w:lad[DRP.dr.length],r:reps});
+    if(DRP.dr.length<lad.length){if(navigator.vibrate)navigator.vibrate(15);drawTrain();return}
+    const p=DRP;DRP=null;
+    if((cur+1)>=it.s){PEND={reps:p.r,w:p.w,dr:p.dr};askRIR(x);return}
+    recordSet(p.r,p.w,null,p.dr);return;
+  }
   const wi=document.getElementById('sw');
   const w=wi&&wi.value!==''?parseFloat(wi.value):null;
   if((cur+1)>=it.s){PEND={reps,w};askRIR(x);return}
@@ -716,7 +755,7 @@ function setRIR(v){
   closeM();
   if(!PEND)return;
   const p=PEND;PEND=null;
-  recordSet(p.reps,p.w,v);
+  recordSet(p.reps,p.w,v,p.dr);
 }
 /* BARANDA AQUILES — un RIR bajo el piso en ejercicio sensible congela la progresion 14 dias */
 function aqCheck(e,x,rir){
@@ -725,7 +764,7 @@ function aqCheck(e,x,rir){
   toast('🧊 '+x.n+': RIR '+rir+' bajo el piso del protocolo — progresión congelada 14 días',true);
   return true;
 }
-function recordSet(reps,w,rir){
+function recordSet(reps,w,rir,dr){
   const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
   const e=entry(ds,dk);
   const cur=e.prog[it.e]||0;
@@ -734,6 +773,7 @@ function recordSet(reps,w,rir){
   if(!e.sd[it.e])e.sd[it.e]=[];
   const rec={r:reps};
   if(w!=null)rec.w=w;
+  if(Array.isArray(dr)&&dr.length)rec.dr=dr;
   if(rir!=null)rec.rir=rir;
   if(rir!=null&&rir<2&&x.aq>=1)rec.rf=1;
   rec.ts=Date.now();
@@ -1337,7 +1377,7 @@ function buildCtx(){
     ord.forEach((id,k)=>{
       const x=ex(+id);if(!x)return;
       const rs=restOf(e.sd[id]);
-      o+='   '+(conTs?(k+1)+'. ':'')+x.n+': '+(e.sd[id]||[]).map(s=>rLabel(x,s.r)+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(s.rf?' [BAJO PISO AQ]':'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')+(legW(s)?' [legacy]':'')).join(', ')
+      o+='   '+(conTs?(k+1)+'. ':'')+x.n+': '+(e.sd[id]||[]).map(s=>rLabel(x,s.r)+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(Array.isArray(s.dr)&&s.dr.length?' [DROP '+s.dr.map(d=>d.w+'×'+d.r).join('/')+']':'')+(s.rf?' [BAJO PISO AQ]':'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')+(legW(s)?' [legacy]':'')).join(', ')
        +(rs?' · descanso real ~'+mmss(rs)+' (plan '+mmss(x.rest||90)+')':'')+'\n';
     });
     (e.notes||[]).forEach(n=>{o+='   📝 '+n.t+' — '+n.txt+'\n'});
