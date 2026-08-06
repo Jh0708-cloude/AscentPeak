@@ -712,7 +712,21 @@ function drawTrain(){
       <span class="xtag">extra</span>
       <span class="sr">${srTxt(rec)}</span></div>`;
   });
-  if(PL.length>=it.s)h+=`<button class="addx" onclick="addExtra()">+ Serie extra</button>`;
+  if(DRP&&DRP.xt){
+    const [a2,b2]=parseR(it.r),gs2=grSpan(x),seg2=uOf(x)==='seg',st2=seg2?5:1;
+    const lo2=gs2?gs2[0]:(seg2?Math.max(5,Math.round((a2-10)/5)*5):Math.max(1,a2-3));
+    const hi2=gs2?gs2[1]:(seg2?b2+15:b2+2);
+    const lad2=drLad(x),arriba=DRP.r==null;
+    let g2='';
+    for(let r=lo2;r<=hi2;r+=st2)g2+=`<button class="${arriba&&r>=a2&&r<=b2?'tgt':''}" onclick="doSet(${r})">${r}</button>`;
+    const wTop=DRP.w!=null?DRP.w:setW(it,it.s-1);
+    h+=`<div class="picker drop"><div class="pk-l">${arriba
+      ?'➕ SERIE EXTRA · <b>'+(wTop!=null?wTop+' kg':'')+'</b> — ¿cuántas hiciste?'
+      :'↓ Descenso '+(DRP.dr.length+1)+' de '+lad2.length+' · <b>'+lad2[DRP.dr.length]+' kg</b> — ¿cuántas hiciste?'}</div>
+    ${arriba?'':`<div class="drtop">Arriba: ${wTop} kg → <b>${DRP.r}</b>${DRP.dr.map((d,q)=>`<span class="drdone">${lad2[q]} kg → <b>${d.r}</b></span>`).join('')}</div>`}
+    <div class="reps">${g2}</div>
+    <div class="mb"><button onclick="DRP=null;drawTrain()">Cancelar</button></div></div>`;
+  }else if(PL.length>=it.s)h+=`<button class="addx" onclick="addExtra()">+ Serie extra</button>`;
   if(PL.length)h+=`<div class="fixhint">Mantén pulsada una serie para corregirla</div>`;
   body.innerHTML=h;
   foot.innerHTML=`<button onclick="prevEx()" ${TR.i===0?'disabled style="opacity:.4"':''}>‹</button>
@@ -733,20 +747,23 @@ function doSet(reps){
   const {ds,dk}=TR,d=PLAN.days[dk],it=d.it[TR.i],x=ex(it.e);
   const e=entry(ds,dk);
   const cur=e.prog[it.e]||0;
-  if(cur>=it.s)return;
+  const esXt=!!(DRP&&DRP.xt);
+  if(cur>=it.s&&!esXt)return;
   const lad=drLad(x);
   if(lad){
-    if(!DRP){
+    if(!DRP||DRP.r==null){
       const wi=document.getElementById('sw');
-      DRP={r:reps,w:wi&&wi.value!==''?parseFloat(wi.value):setW(it,cur),dr:[]};
+      const wv=wi&&wi.value!==''?parseFloat(wi.value):setW(it,Math.min(cur,it.s-1));
+      DRP=DRP?Object.assign(DRP,{r:reps,w:wv}):{r:reps,w:wv,dr:[]};
       if(navigator.vibrate)navigator.vibrate(15);
       drawTrain();return;
     }
     DRP.dr.push({w:lad[DRP.dr.length],r:reps});
     if(DRP.dr.length<lad.length){if(navigator.vibrate)navigator.vibrate(15);drawTrain();return}
     const p=DRP;DRP=null;
-    if((cur+1)>=it.s){PEND={reps:p.r,w:p.w,dr:p.dr};askRIR(x);return}
-    recordSet(p.r,p.w,null,p.dr);return;
+    PEND={reps:p.r,w:p.w,dr:p.dr,xt:p.xt};
+    if(p.xt||(cur+1)>=it.s){askRIR(x);return}
+    PEND=null;recordSet(p.r,p.w,null,p.dr);return;
   }
   const wi=document.getElementById('sw');
   const w=wi&&wi.value!==''?parseFloat(wi.value):null;
@@ -769,7 +786,7 @@ function setRIR(v){
   closeM();
   if(!PEND)return;
   const p=PEND;PEND=null;
-  recordSet(p.reps,p.w,v,p.dr);
+  if(p.xt)recExtra(p.reps,p.w,v,p.dr);else recordSet(p.reps,p.w,v,p.dr);
 }
 /* BARANDA AQUILES — un RIR bajo el piso en ejercicio sensible congela la progresion 14 dias */
 function aqCheck(e,x,rir){
@@ -900,7 +917,31 @@ function saveFix(k){
   const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
   saveLog(ds);closeM();drawTrain();
 }
-function addExtra(){openFix(-1)}
+function addExtra(){
+  const {dk}=TR,it=PLAN.days[dk].it[TR.i],x=ex(it.e);
+  if(drLad(x)){DRP={r:null,w:null,dr:[],xt:1};drawTrain();return}
+  openFix(-1);
+}
+/* serie extra ya cerrada: no toca prog (§ lo planificado y lo ejecutado son dos numeros) */
+function recExtra(reps,w,rir,dr){
+  const {ds,dk}=TR,it=PLAN.days[dk].it[TR.i],x=ex(it.e);
+  const e=entry(ds,dk);
+  if(!e.sd[it.e])e.sd[it.e]=[];
+  const rec={r:reps,xt:1};
+  if(w!=null)rec.w=w;
+  if(rir!=null)rec.rir=rir;
+  if(rir!=null&&rir<2&&x.aq>=1)rec.rf=1;
+  if(Array.isArray(dr)&&dr.length)rec.dr=dr;
+  rec.ts=Date.now();
+  e.sd[it.e].push(rec);
+  noteFix(e,'➕ '+x.n+': serie extra '+reps+(w!=null?'@'+w+'kg':'')+(rec.dr?' ▾'+rec.dr.map(v=>v.r).join('·'):'')+' (fuera del plan)');
+  e.t1=Date.now();
+  saveLog(ds);
+  if(navigator.vibrate)navigator.vibrate(25);
+  aqCheck(e,x,rir);
+  drawTrain();
+  startRest(x.rest,'Serie extra registrada');
+}
 function askDel(k){
   const {ds,dk}=TR,it=PLAN.days[dk].it[TR.i];
   const e=entry(ds,dk),s=(e.sd[it.e]||[])[k];if(!s)return;
@@ -1332,11 +1373,8 @@ function dblProg(){
     for(let k=ses.length-1;k>=0;k--){
       const ds=ses[k];
       if(db(ds,hoy)>21)break;                            /* fuera de ventana */
-      const serAll=LOG[ds].sd[x.id],r=rngFor(x.id,ds);
+      const ser=LOG[ds].sd[x.id],r=rngFor(x.id,ds);
       if(!r)break;
-      /* drop set: solo la serie 1 es medicion limpia. Las siguientes arrastran
-         la fatiga de los descensos sin descanso y nunca cerrarian en el tope. */
-      const ser=drLad(x)?serAll.slice(0,1):serAll;
       const ws=ser.filter(v=>typeof v.w==='number').map(v=>v.w);
       const w=ws.length?Math.max.apply(null,ws):(x.w.bw?0:null);
       if(w==null)break;                                  /* legacy o sin peso */
@@ -1373,7 +1411,7 @@ function buildCtx(){
   o+='\n=== DOBLE PROGRESIÓN (calculado por la app) ===\n';
   if(!dp.length)o+='Ningún ejercicio cumple la condición de subir.\n';
   else dp.forEach(p=>{
-    o+=p.x.n+' (id '+p.x.id+'): '+p.n+' sesiones seguidas cerrando TODAS las series en el tope de '+p.b+' reps AL MISMO PESO ('+p.w+' kg, última el '+p.d.slice(5)+') · rango '+p.a+'-'+p.b+(drLad(p.x)?' [drop set: medido en la serie 1, las siguientes arrastran fatiga sin descanso]':'')+' → CUMPLE CONDICIÓN DE SUBIR'+(p.x.aq>=1?' [AQUILES: solo si no está congelado]':'')+'\n';
+    o+=p.x.n+' (id '+p.x.id+'): '+p.n+' sesiones seguidas cerrando TODAS las series en el tope de '+p.b+' reps AL MISMO PESO ('+p.w+' kg, última el '+p.d.slice(5)+') · rango '+p.a+'-'+p.b+' → CUMPLE CONDICIÓN DE SUBIR'+(p.x.aq>=1?' [AQUILES: solo si no está congelado]':'')+'\n';
   });
   o+='\n=== CUMPLIMIENTO 4 SEMANAS ===\n';
   for(let w=3;w>=0;w--){
