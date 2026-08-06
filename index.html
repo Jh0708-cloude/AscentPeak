@@ -316,9 +316,9 @@ const PAT={
  iso_tri:{n:'Tríceps',g:'push'},iso_bi:{n:'Bíceps',g:'pull'},
  iso_delt:{n:'Deltoides',g:'push'},iso_leg:{n:'Aislamiento pierna',g:'leg'}
 };
-const GRUPOS=['Pecho','Espalda','Hombro','Bíceps','Tríceps','Cuádriceps','Isquios','Glúteo','Gemelo','Core'];
-const RANGO={Pecho:[16,40],Espalda:[18,44],Hombro:[14,36],'Bíceps':[10,28],'Tríceps':[10,28],'Cuádriceps':[16,40],Isquios:[10,28],'Glúteo':[10,30],Gemelo:[8,26],Core:[8,26]};
-const GCOL={Pecho:'--push',Hombro:'--push','Tríceps':'--push',Espalda:'--pull','Bíceps':'--pull','Cuádriceps':'--leg',Isquios:'--leg','Glúteo':'--leg',Gemelo:'--leg',Core:'--core'};
+const GRUPOS=['Pecho','Espalda','Hombro','Bíceps','Tríceps','Cuádriceps','Isquios','Glúteo','Aductor','Gemelo','Core'];
+const RANGO={Pecho:[16,40],Espalda:[18,44],Hombro:[14,36],'Bíceps':[10,28],'Tríceps':[10,28],'Cuádriceps':[16,40],Isquios:[10,28],'Glúteo':[10,30],Aductor:[6,20],Gemelo:[8,26],Core:[8,26]};
+const GCOL={Pecho:'--push',Hombro:'--push','Tríceps':'--push',Espalda:'--pull','Bíceps':'--pull','Cuádriceps':'--leg',Isquios:'--leg','Glúteo':'--leg',Aductor:'--leg',Gemelo:'--leg',Core:'--core'};
 function gcol(g){return 'var('+(GCOL[g]||'--core')+')'}
 const CAT_DEF=[
  {id:1,n:'Press de pecho en máquina',pat:'push_h',pri:'Pecho',sec:['Tríceps','Hombro'],eq:'maquina',aq:0,w:{v:30,ps:true},rest:150},
@@ -346,9 +346,9 @@ const CAT_DEF=[
  {id:23,n:'Curl femoral',pat:'iso_leg',pri:'Isquios',sec:[],eq:'maquina',aq:0,w:{v:32,nt:'echado'},rest:90},
  {id:24,n:'Hack',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'maquina',aq:2,w:{v:30,ps:true},rest:150},
  {id:25,n:'Búlgaras con carga',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'mancuerna',aq:2,w:{v:15,ps:true,nt:'rehab'},rest:150},
- {id:26,n:'Prensa de piernas',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'prensa',aq:1,w:{v:77,ps:true},rest:150},
+ {id:26,n:'Prensa de placas',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'prensa',aq:1,w:{v:77,ps:true},rest:150},
  {id:27,n:'Abducción (abrir)',pat:'iso_leg',pri:'Glúteo',sec:[],eq:'maquina',aq:0,w:{v:45},rest:90},
- {id:28,n:'Aducción (cerrar)',pat:'iso_leg',pri:'Cuádriceps',sec:[],eq:'maquina',aq:0,w:{v:45},rest:90},
+ {id:28,n:'Aducción (cerrar)',pat:'iso_leg',pri:'Aductor',sec:[],eq:'maquina',aq:0,w:{v:45},rest:90},
  {id:29,n:'Hip thrust en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'maquina',aq:0,w:{v:35},rest:150},
  {id:30,n:'Elevaciones de talón en escalón',pat:'calf',pri:'Gemelo',sec:[],eq:'corporal',aq:3,w:{bw:true},rest:75},
  {id:31,n:'Gemelo sentado',pat:'calf',pri:'Gemelo',sec:[],eq:'maquina',aq:1,w:{v:10},rest:75},
@@ -357,7 +357,19 @@ const CAT_DEF=[
  {id:34,n:'Gemelo en prensa',pat:'calf',pri:'Gemelo',sec:[],eq:'prensa',aq:1,w:{v:40,ps:true},rest:75},
  {id:35,n:'Plancha con peso',pat:'core',pri:'Core',sec:[],eq:'corporal',aq:0,unit:'seg',w:{bw:true,pl:true},rest:60},
  {id:36,n:'Crunch en polea arrodillado',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:25},rest:60},
- {id:37,n:'Pallof press en polea',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:15},rest:60}
+ {id:37,n:'Pallof press en polea',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:15},rest:60},
+ {id:38,n:'Hiperextensión 45°',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'corporal',aq:0,w:{bw:true,pl:true},rest:90},
+ {id:39,n:'Patada de glúteo en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'maquina',aq:0,w:{v:0,ps:true,nt:'unilateral'},rest:90},
+ {id:40,n:'Sentadilla pendular',pat:'knee',pri:'Cuádriceps',sec:['Glúteo','Isquios'],eq:'maquina',aq:1,w:{v:0,ps:true,nt:'disco'},rest:150},
+ {id:41,n:'Prensa inclinada de disco',pat:'knee',pri:'Cuádriceps',sec:['Glúteo','Isquios'],eq:'prensa',aq:1,w:{v:0,ps:true,nt:'disco'},rest:150},
+ {id:42,n:'Curl femoral sentado',pat:'iso_leg',pri:'Isquios',sec:[],eq:'maquina',aq:1,w:{v:0},rest:90},
+ {id:43,n:'Peso muerto rumano en Smith',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'maquina',aq:1,w:{v:0,nt:'barra guiada'},rest:150},
+ {id:44,n:'Peso muerto rumano',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'barra',aq:2,w:{v:0},rest:180},
+ {id:45,n:'Peso muerto convencional',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'barra',aq:2,w:{v:0},rest:180},
+ {id:46,n:'Buenos días',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'barra',aq:2,w:{v:0},rest:150},
+ {id:47,n:'Sentadilla libre',pat:'knee',pri:'Cuádriceps',sec:['Glúteo','Isquios'],eq:'barra',aq:2,w:{v:0},rest:180},
+ {id:48,n:'Sentadilla en Smith',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'maquina',aq:2,w:{v:0,nt:'barra guiada'},rest:150},
+ {id:49,n:'Gemelo de pie en pendular',pat:'calf',pri:'Gemelo',sec:[],eq:'maquina',aq:3,w:{v:0,ps:true,nt:'disco'},rest:75}
 ];
 const PLAN_DEF={v:3,since:'2026-07-27',note:'Abdomen y gemelos integrados al PPL. Casa eliminada.',days:{
  1:{l:'Push A',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:2,s:3,r:'10-12',sc:[18,16,16]},{e:3,s:3,r:'12-15'},{e:6,s:4,r:'6-8'},{e:7,s:3,r:'12-15'},{e:11,s:3,r:'8-10'},{e:12,s:3,r:'10-12'},{e:35,s:3,r:'30-45s'}]},
@@ -397,7 +409,7 @@ function migCat(){
   CAT.forEach(c=>{
     const d=def[c.id];if(!d)return;
     /* metadatos que la semilla manda sobre el catalogo guardado */
-    ['unit','stk','drn','drs','gr','aq','pat','pri','sec','eq'].forEach(f=>{
+    ['n','unit','stk','drn','drs','gr','aq','pat','pri','sec','eq'].forEach(f=>{
       const v=d[f]===undefined?null:d[f];
       const cur=c[f]===undefined?null:c[f];
       if(JSON.stringify(cur)!==JSON.stringify(v)){if(v===null)delete c[f];else c[f]=JSON.parse(JSON.stringify(v));ch=true}
