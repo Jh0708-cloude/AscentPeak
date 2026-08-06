@@ -352,7 +352,37 @@ proyecto), así que `dblProg()` va a seguir marcando extensión de piernas como
 progresión legítima hasta que salgan de la ventana de 14 días. **Hay que
 rechazarla a mano hasta entonces.**
 
-**4. Escritura del progreso al catálogo y al plan.** Lo del 04/08 resolvió la
+**4. Escritura del progreso al catálogo y al plan. — MEDIDO el 07/08: 19 de 30
+ejercicios desfasados.** Dejó de ser deuda abstracta. El usuario no usa `editW`:
+sube el peso **serie por serie en la hoja de corrección**, que guarda en el log
+del día y **nunca toca `x.w.v`**. De ahí salen tres consecuencias vivas:
+
+- La baranda 3 (§14) protege un camino que casi no se usa. La hack a 35 kg del
+  05/08 entró por la hoja, no por `editW`.
+- El tope se calcula desde un número viejo: "+5 sobre 30" cuando ya se levantan 35.
+- La pantalla precarga el peso viejo cada sesión y hay que corregirlo a mano.
+
+Muestra al 07/08: gemelo sentado 10→20 · fondos 52→60 · hack 30→35 · búlgaras
+15→20 · prensa 70→75 · hip thrust 35→40 · curl femoral 32→36.
+
+**Lo único que sí funciona**: el contexto de la IA marca el desfase con
+`[REAL: x kg el dd-mm]` (arreglado el 04/08). El entrenador ve lo real; el resto
+de la app no.
+
+**Diseño acordado (07/08), pendiente de construir:**
+- Escribir al catálogo **solo cuando el peso SUBE**. Hay ejercicios que bajaron
+  (curl de bíceps 16→14, crunch 25→20) y son días flojos, no deloads: bajarlos
+  automáticamente empeoraría la precarga. Las bajadas las decide el usuario.
+- **No contar sustitutos.** Gemelo en prensa figura en 10 kg porque el 05/08 ese
+  slot se hizo en pendular. Escribirlo bajaría el peso a 10. **Depende de la
+  marca `sub` del Paso 4** — este es el acople real entre los dos pendientes.
+- No contar series `legacy` ni isométricos.
+
+**Aplazado al 10/08** por decisión del usuario: no se mueve el dato del que
+dependen precarga, baranda y contexto en la misma semana que estrena tres
+ejercicios nuevos.
+
+Lo del 04/08 resolvió la
 **lectura** (la IA ya ve lo real), no la **escritura**. `x.w.v` y el `sc` del plan
 siguen cambiando solo con ✓ Aplicar. Consecuencias vivas: la pantalla de entreno
 precarga el peso viejo (`setW` mira `it.sc` o `x.w.v`, nunca la última sesión) y
