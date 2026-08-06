@@ -371,13 +371,13 @@ const CAT_DEF=[
  {id:48,n:'Sentadilla en Smith',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'maquina',aq:2,w:{v:0,nt:'barra guiada'},rest:150},
  {id:49,n:'Gemelo de pie en pendular',pat:'calf',pri:'Gemelo',sec:[],eq:'maquina',aq:3,w:{v:0,ps:true,nt:'disco'},rest:75}
 ];
-const PLAN_DEF={v:3,since:'2026-07-27',note:'Abdomen y gemelos integrados al PPL. Casa eliminada.',days:{
+const PLAN_DEF={v:4,since:'2026-08-08',note:'Pierna reescrita sobre el catálogo real: bisagra de cadera al frente, hack y búlgaras fuera mientras dure el protocolo.',days:{
  1:{l:'Push A',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:2,s:3,r:'10-12',sc:[18,16,16]},{e:3,s:3,r:'12-15'},{e:6,s:4,r:'6-8'},{e:7,s:3,r:'12-15'},{e:11,s:3,r:'8-10'},{e:12,s:3,r:'10-12'},{e:35,s:3,r:'30-45s'}]},
  2:{l:'Pull A',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:15,s:4,r:'8-10'},{e:17,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:18,s:3,r:'8-10',sc:[16,14,14]},{e:21,s:3,r:'12-15',sc:[20,20,15]},{e:36,s:3,r:'12-15'}]},
- 3:{l:'Pierna A',it:[{e:22,s:3,r:'7-10'},{e:24,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
+ 3:{l:'Pierna A',it:[{e:40,s:3,r:'10-12'},{e:38,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:22,s:3,r:'7-10'},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
  4:{l:'Push B',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:4,s:3,r:'12-15'},{e:5,s:3,r:'12-15'},{e:6,s:3,r:'8-10'},{e:8,s:3,r:'12-15'},{e:13,s:3,r:'8-10',sc:[55,50,50]},{e:10,s:3,r:'10-12'},{e:33,s:3,r:'12-15'}]},
  5:{l:'Pull B',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:16,s:4,r:'8-10'},{e:15,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:20,s:3,r:'8-10'},{e:19,s:3,r:'10-12'},{e:37,s:3,r:'10-12 x lado'}]},
- 6:{l:'Pierna B',it:[{e:22,s:3,r:'7-10'},{e:26,s:4,r:'10-12',sc:[60,77,77,77]},{e:25,s:3,r:'8-10'},{e:23,s:3,r:'10-12'},{e:28,s:3,r:'12-15'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:34,s:3,r:'15-20'}]},
+ 6:{l:'Pierna B',it:[{e:43,s:3,r:'8-10'},{e:41,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:42,s:3,r:'10-12'},{e:22,s:3,r:'7-10'},{e:28,s:3,r:'12-15'},{e:34,s:3,r:'15-20'}]},
  0:{l:'Descanso',it:[]}
 }};
 const MEAS=[
@@ -420,7 +420,18 @@ function migCat(){
   return ch;
 }
 migCat();
-if(!PLAN){PLAN=JSON.parse(JSON.stringify(PLAN_DEF));st(K.plan,PLAN);PHIST.push({v:3,d:PLAN.since,note:PLAN.note});st(K.hist,PHIST)}
+if(!PLAN){PLAN=JSON.parse(JSON.stringify(PLAN_DEF));st(K.plan,PLAN);PHIST.push({v:PLAN_DEF.v,d:PLAN.since,note:PLAN.note});st(K.hist,PHIST)}
+/* Migración PUNTUAL v3 -> v4. No es un migPlan() generico: el plan lo edita el
+   usuario y nada debe pisarlo en cada despliegue. Esta corre UNA vez, solo si
+   el plan guardado sigue en v3, y solo toca Pierna A y Pierna B. Push y Pull
+   quedan intactos con todas las ediciones manuales que tengan. */
+if(PLAN&&PLAN.v===3){
+  PLAN.days[3]=JSON.parse(JSON.stringify(PLAN_DEF.days[3]));
+  PLAN.days[6]=JSON.parse(JSON.stringify(PLAN_DEF.days[6]));
+  PLAN.v=4;PLAN.since=PLAN_DEF.since;PLAN.note=PLAN_DEF.note;
+  st(K.plan,PLAN);
+  PHIST.push({v:4,d:PLAN_DEF.since,note:PLAN_DEF.note});st(K.hist,PHIST);
+}
 if(!MS){MS={cintura:[{d:'2026-07-03',v:101}],cadera:[{d:'2026-07-03',v:105}],peso:[]};st(K.ms,MS)}
 MEAS.forEach(m=>{if(!MS[m.k])MS[m.k]=[]});
 function save(k,v){st(k,v);if(window.__ready)markDirty(k)}
