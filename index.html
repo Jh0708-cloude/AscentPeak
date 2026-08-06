@@ -1188,19 +1188,61 @@ function editW(id){
   <input id="wn" placeholder="Nota (ej: barra incl.)" value="${esc(x.w.nt||'')}">
   <div class="mb"><button onclick="closeM()">Cancelar</button><button class="ok" onclick="doW(${id})">Guardar</button></div>`);
 }
+/* BARANDA 3 — el cambio de peso A MANO avisa igual que el de la IA.
+   Hasta el 06/08 appProp() vigilaba solo el camino de la propuesta; el del dedo
+   no lo vigilaba nadie, y el 05/08 la hack subio a 35 kg con el protocolo activo
+   sin que nada lo dijera. Aqui NO se bloquea: el usuario decide. Lo que no puede
+   pasar es que suba sin enterarse. */
+let PENDW=null;
+function wAlerts(x,v){
+  const prev=x.w.bw?0:(x.w.v||0),al=[];
+  /* nivel 3 = fuera del plan siempre. Se avisa aunque no haya congelamiento */
+  if(x.aq>=3)al.push('🚫 <b>'+esc(x.n)+'</b> es nivel 3 del protocolo Aquiles: fuera del plan por decisión, no por el congelamiento.');
+  const fr=aqFrozen();
+  /* prev 0 = ejercicio nuevo. Poner el primer peso es calibrar, no subir.
+     Avisar ahi seria ruido, y el ruido entrena a ignorar los avisos. */
+  if(fr&&x.aq>=1&&x.aq<3&&prev>0&&v>prev)al.push('🧊 <b>'+esc(x.n)+'</b> está congelado por el protocolo Aquiles hasta el '+fr+'.');
+  /* en maquinas de torre el tope se mide en POSICIONES, no en kg: un tope de 2 kg
+     en una torre que salta de 4.5 no protege, molesta. Misma regla que appProp. */
+  const si=Array.isArray(x.stk)?x.stk.indexOf(prev):-1;
+  if(si>=0){
+    let j=x.stk.findIndex(p=>p>=v);if(j<0)j=x.stk.length-1;
+    if(j>si+1)al.push('⚠️ Salta <b>'+(j-si)+' posiciones</b> de la torre de una vez. El tope es una.');
+  }else{
+    const iso=/^iso_/.test(x.pat)||x.pat==='core',cap=iso?2:5;
+    if(prev>0&&v>prev+cap)al.push('⚠️ Sube <b>'+(+(v-prev).toFixed(1))+' kg</b> de una vez. El tope de seguridad es +'+cap+' kg.');
+  }
+  return al;
+}
 function doW(id){
   const x=ex(id);
   const v=parseFloat(document.getElementById('wv').value);
   const ps=document.getElementById('wps').checked;
   const nt=document.getElementById('wn').value.trim();
-  if(!isNaN(v)&&v>0){
-    const prevMax=Math.max(0,...(WH[id]||[]).map(r=>r.v||parseFloat(r.w)||0));
-    x.w={v,ps,nt:nt||undefined};
-    if(!WH[id])WH[id]=[];
-    WH[id].push({d:tds(),v,ps,w:wLabel(x.w)});
-    save(K.cat,CAT);save(K.wh,WH);
-    toast(v>prevMax&&prevMax>0?'🏆 Nuevo récord de carga':'Peso actualizado');
+  if(isNaN(v)||v<=0){closeM();rProgreso();return}
+  PENDW={id,v,ps,nt,av:0};
+  const al=wAlerts(x,v);
+  if(al.length){
+    PENDW.av=1;
+    openM(`<h2>¿Seguro?</h2><div class="sub">${al.join('<br><br>')}</div>
+    <div class="mb"><button onclick="closeM()">Cancelar</button><button class="ok" onclick="doWGo()">Guardar igual</button></div>`);
+    return;
   }
+  doWGo();
+}
+function doWGo(){
+  if(!PENDW)return;
+  const {id,v,ps,nt,av}=PENDW;PENDW=null;
+  const x=ex(id);if(!x){closeM();return}
+  const prev=x.w.bw?0:(x.w.v||0);
+  const prevMax=Math.max(0,...(WH[id]||[]).map(r=>r.v||parseFloat(r.w)||0));
+  x.w={v,ps,nt:nt||undefined};
+  if(!WH[id])WH[id]=[];
+  WH[id].push({d:tds(),v,ps,w:wLabel(x.w)});
+  /* si ignoro un aviso queda registrado: el domingo el entrenador lo ve */
+  if(av){DIARY.push({d:tds(),ex:id,ok:true,v,prev,m:'cambio a mano con aviso',mano:true});save(K.diary,DIARY)}
+  save(K.cat,CAT);save(K.wh,WH);
+  toast(v>prevMax&&prevMax>0?'🏆 Nuevo récord de carga':'Peso actualizado');
   closeM();rProgreso();
 }
 function vAct(){

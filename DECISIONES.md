@@ -360,10 +360,20 @@ el tope de +5 kg de la baranda se calcula desde un número desactualizado.
 Necesita reglas antes de escribir: no contar sustitutos, ni series `legacy`, ni
 isométricos. Va después de `sub` porque depende de esa marca.
 
-**5. Isquios y pecho fuera de rango** (plan, no código). Al 02/08: isquios 9
-series directas en 14 días contra un piso de 10, con un solo ejercicio (curl
-femoral); pecho 41 contra un techo de 40; hombro 38 contra 36. Falta peso muerto
-rumano o buenos días en Pierna B. Va en el plan v4.
+**5. ~~Isquios fuera de rango~~ — resuelto en el plan v4 (07/08).** De 12 a 24
+series directas. **Pecho (41 contra techo 40) y hombro (38 contra 36) siguen
+abiertos**: el v4 solo reescribió pierna. Ver §13 y §15.
+
+**5-bis. Verificado el 07/08 y cerrado sin trabajo:**
+- **Isométricos**: `unit:'seg'` ya existe en plancha (id 35), la grilla sube de
+  5 en 5, `volOf` la excluye del tonelaje, y `loadByGroup` cuenta **series**, no
+  segundos — nunca los mezcló. Pallof está como `10-12 x lado`, o sea
+  repeticiones. Estaba anotado como pendiente sin haberse comprobado.
+- **Series extra**: el botón existe, se registran en `sd` con marca `xt`, no
+  tocan `prog`, y el contador las cuenta porque mide el largo del array.
+
+Los dos llevaban semanas en la lista. **Un pendiente que nadie verifica se
+convierte en deuda imaginaria** y hace ver el proyecto peor de lo que está.
 
 **6. Peso corporal sin registrar.** Dos entradas, ambas de la primera semana de
 julio. Sin ese dato no se puede distinguir grasa perdida de músculo perdido.
@@ -713,3 +723,73 @@ solo. Mientras tanto: el primer peso lo pone el usuario en el gimnasio.
   eso. Separar en `placas` / `disco` / `smith` cambia la forma del dato: va solo,
   con una sesión de por medio, y revisando antes si algo filtra por `'maquina'`.
 - **Plan v4.** Ahora se puede armar eligiendo de una lista real.
+
+---
+
+## 14. Baranda 3 — el cambio de peso a mano (2026-08-07)
+
+Cerró el hueco más viejo del proyecto: **las reglas corrían en un solo camino.**
+
+### El caso
+
+El 05/08, en el gimnasio, la hack subió de 30 a 35 kg escribiendo el número
+directamente en `editW`. El protocolo Aquiles estaba activo. Ese ejercicio es
+`aq:2`. Nada lo dijo. `appProp()` —donde viven las barandas desde el 30/07—
+vigila **solo lo que propone la IA**. El camino del dedo no lo vigilaba nadie.
+
+La regla existía, corría en código, estaba probada, y había una puerta abierta al
+lado.
+
+### Qué se hizo
+
+`wAlerts(x,v)` + confirmación en `doW`. **No bloquea: el usuario decide.** Lo que
+no puede pasar es que suba sin enterarse. Si ignora el aviso, queda en `DIARY`
+con `mano:true`, así que el análisis del domingo lo ve.
+
+Tres avisos:
+
+| Condición | Aviso |
+|---|---|
+| `aq >= 3` | 🚫 fuera del plan por decisión, siempre — haya congelamiento o no |
+| congelamiento activo · `aq 1-2` · sube · `prev > 0` | 🧊 congelado hasta la fecha |
+| salto sobre el tope | ⚠️ en kg (+5 / +2) o en **posiciones de torre** |
+
+### Dos cosas que la primera versión hacía mal
+
+Las dos aparecieron al probar contra el respaldo real, no al leer el código.
+
+**Medía la torre en kg.** Extensión de piernas 77 → 82 es la siguiente posición
+del stack, y saltaba el aviso de "+2 kg máximo". Es el mismo error que ya se había
+corregido en `appProp` el 05/08 — se repitió porque escribí la baranda nueva sin
+mirar la vieja. En torre se mide en **posiciones**, y el tope es una.
+
+**Avisaba en ejercicios nuevos.** Los 12 del catálogo arrancan en `w.v: 0`, así
+que poner el primer peso contaba como "subida" y disparaba el 🧊. Habrían saltado
+tres avisos falsos en la primera Pierna B. **Poner el primer peso es calibrar, no
+progresar** — y el ruido entrena a ignorar los avisos, que es justo lo contrario
+de lo que esta baranda busca.
+
+### Verificación
+
+Diez casos contra el respaldo real. Los que importan:
+
+```
+🔔 Hack 30 -> 35   (el caso del 05/08)     avisa
+✓  Hack 30 -> 25   (bajar)                 pasa — bajar nunca se frena
+✓  Torre 77 -> 82  (siguiente posición)    pasa
+🔔 Torre 77 -> 86  (salta dos)             avisa
+✓  Pendular 0 -> 20 (primer peso)          pasa — calibrar no es subir
+🔔 Gemelo pendular nivel 3                 avisa siempre
+```
+
+### La lección
+
+**Una regla vale por sus caminos, no por su texto.** Estaba escrita, probada y
+corriendo — y aun así no se cumplió, porque solo cubría uno de los dos accesos al
+dato. Al agregar una baranda hay que preguntarse *cuántas formas hay de llegar
+aquí*, no *está bien escrita la condición*.
+
+Queda una pregunta abierta para el futuro: **¿hay un tercer camino?** La
+sincronización con Firestore escribe `CAT` completo desde la nube. Si otro
+dispositivo guarda un peso, entra sin pasar por `doW` ni `appProp`. Hoy no
+importa —hay un solo teléfono— pero conviene tenerlo anotado.
