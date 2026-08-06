@@ -342,7 +342,7 @@ const CAT_DEF=[
  {id:19,n:'Curl Zottman',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'mancuerna',aq:0,w:{v:12,ps:true},rest:90},
  {id:20,n:'Curl predicador',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'maquina',aq:0,w:{v:15,ps:true},rest:90},
  {id:21,n:'Curl en polea alta',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'polea',aq:0,w:{v:20,ps:true},rest:90},
- {id:22,n:'Extensión de piernas',pat:'iso_leg',pri:'Cuádriceps',sec:[],eq:'maquina',aq:0,w:{v:77},dr:[64,50,36,23],rest:90},
+ {id:22,n:'Extensión de piernas',pat:'iso_leg',pri:'Cuádriceps',sec:[],eq:'maquina',aq:0,w:{v:77},stk:[9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91],drn:4,drs:3,gr:[7,16],rest:90},
  {id:23,n:'Curl femoral',pat:'iso_leg',pri:'Isquios',sec:[],eq:'maquina',aq:0,w:{v:32,nt:'echado'},rest:90},
  {id:24,n:'Hack',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'maquina',aq:2,w:{v:30,ps:true},rest:150},
  {id:25,n:'Búlgaras con carga',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'mancuerna',aq:2,w:{v:15,ps:true,nt:'rehab'},rest:150},
@@ -362,10 +362,10 @@ const CAT_DEF=[
 const PLAN_DEF={v:3,since:'2026-07-27',note:'Abdomen y gemelos integrados al PPL. Casa eliminada.',days:{
  1:{l:'Push A',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:2,s:3,r:'10-12',sc:[18,16,16]},{e:3,s:3,r:'12-15'},{e:6,s:4,r:'6-8'},{e:7,s:3,r:'12-15'},{e:11,s:3,r:'8-10'},{e:12,s:3,r:'10-12'},{e:35,s:3,r:'30-45s'}]},
  2:{l:'Pull A',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:15,s:4,r:'8-10'},{e:17,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:18,s:3,r:'8-10',sc:[16,14,14]},{e:21,s:3,r:'12-15',sc:[20,20,15]},{e:36,s:3,r:'12-15'}]},
- 3:{l:'Pierna A',it:[{e:22,s:3,r:'6-8'},{e:24,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
+ 3:{l:'Pierna A',it:[{e:22,s:3,r:'7-10'},{e:24,s:3,r:'10-12'},{e:26,s:3,r:'10-12',sc:[60,75,75]},{e:23,s:3,r:'10-12'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:27,s:3,r:'12-15'},{e:34,s:3,r:'15-20'},{e:31,s:3,r:'20'}]},
  4:{l:'Push B',it:[{e:1,s:4,r:'6-8',sc:[30,30,30,25]},{e:4,s:3,r:'12-15'},{e:5,s:3,r:'12-15'},{e:6,s:3,r:'8-10'},{e:8,s:3,r:'12-15'},{e:13,s:3,r:'8-10',sc:[55,50,50]},{e:10,s:3,r:'10-12'},{e:33,s:3,r:'12-15'}]},
  5:{l:'Pull B',it:[{e:14,s:4,r:'6-8',sc:[50,45,45,45]},{e:16,s:4,r:'8-10'},{e:15,s:3,r:'8-10'},{e:9,s:3,r:'12-15'},{e:20,s:3,r:'8-10'},{e:19,s:3,r:'10-12'},{e:37,s:3,r:'10-12 x lado'}]},
- 6:{l:'Pierna B',it:[{e:22,s:3,r:'6-8'},{e:26,s:4,r:'10-12',sc:[60,77,77,77]},{e:25,s:3,r:'8-10'},{e:23,s:3,r:'10-12'},{e:28,s:3,r:'12-15'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:34,s:3,r:'15-20'}]},
+ 6:{l:'Pierna B',it:[{e:22,s:3,r:'7-10'},{e:26,s:4,r:'10-12',sc:[60,77,77,77]},{e:25,s:3,r:'8-10'},{e:23,s:3,r:'10-12'},{e:28,s:3,r:'12-15'},{e:29,s:3,r:'8-12',sc:[35,30,30]},{e:34,s:3,r:'15-20'}]},
  0:{l:'Descanso',it:[]}
 }};
 const MEAS=[
@@ -397,7 +397,7 @@ function migCat(){
   CAT.forEach(c=>{
     const d=def[c.id];if(!d)return;
     /* metadatos que la semilla manda sobre el catalogo guardado */
-    ['unit','dr','aq','pat','pri','sec','eq'].forEach(f=>{
+    ['unit','stk','drn','drs','gr','aq','pat','pri','sec','eq'].forEach(f=>{
       const v=d[f]===undefined?null:d[f];
       const cur=c[f]===undefined?null:c[f];
       if(JSON.stringify(cur)!==JSON.stringify(v)){if(v===null)delete c[f];else c[f]=JSON.parse(JSON.stringify(v));ch=true}
@@ -428,7 +428,17 @@ function dayGroup(dk){const it=(PLAN.days[dk]||{it:[]}).it;if(!it.length)return 
 function uOf(x){return x&&x.unit?x.unit:'rep'}
 function legW(s){return s&&typeof s.w==='string'}
 /* escalera de drop set declarada en el catalogo (pesos planificados de los descensos) */
-function drLad(x){return (x&&Array.isArray(x.dr)&&x.dr.length&&uOf(x)==='rep')?x.dr:null}
+function grSpan(x){return (x&&Array.isArray(x.gr)&&x.gr.length===2)?x.gr:null}
+function drLad(x){
+  if(!x||uOf(x)!=='rep')return null;
+  if(Array.isArray(x.dr)&&x.dr.length)return x.dr;            /* escalera fija (legacy) */
+  if(!Array.isArray(x.stk)||!x.drn||!x.drs)return null;
+  const i=x.stk.indexOf(x.w.v);if(i<0)return null;            /* el peso no esta en la torre */
+  const out=[];for(let k=1;k<=x.drn;k++){const j=i-k*x.drs;if(j<0)break;out.push(x.stk[j])}
+  return out.length?out:null;
+}
+/* posiciones de la torre: el salto minimo real de la maquina */
+function stkStep(x){if(!x||!Array.isArray(x.stk))return null;const i=x.stk.indexOf(x.w.v);return (i>=0&&i+1<x.stk.length)?+(x.stk[i+1]-x.stk[i]).toFixed(1):null}
 /* tonelaje de los descensos de una serie */
 function drVol(s,ps){return (Array.isArray(s.dr)?s.dr:[]).reduce((a,d)=>a+(d.r||0)*(parseFloat(d.w)||0)*(ps?2:1),0)}
 function rLabel(x,r){return uOf(x)==='seg'?r+'s':r}
@@ -671,13 +681,17 @@ function drawTrain(){
     if(act){
       const [a,b]=parseR(it.r);
       const seg=uOf(x)==='seg',step=seg?5:1;
-      const lo=seg?Math.max(5,Math.round((a-10)/5)*5):Math.max(1,a-3);
-      const hi=seg?b+15:b+2;
+      const gs=grSpan(x);
+      const lo=gs?gs[0]:(seg?Math.max(5,Math.round((a-10)/5)*5):Math.max(1,a-3));
+      const hi=gs?gs[1]:(seg?b+15:b+2);
       const lad=drLad(x),enDr=!!(DRP&&lad);
       let reps='';
       for(let r=lo;r<=hi;r+=step)reps+=`<button class="${r>=a&&r<=b?'tgt':''}" onclick="doSet(${r})">${r}${seg?'s':''}</button>`;
       if(enDr){
         const j=DRP.dr.length,wd=lad[j];
+        /* el descenso no tiene objetivo: peso fijo, se lleva hasta donde llegue.
+           Grilla ancha y SIN resaltado — un boton en verde aqui estira el numero. */
+        reps='';for(let r=lo;r<=hi;r+=step)reps+=`<button onclick="doSet(${r})">${r}</button>`;
         const hechos=DRP.dr.map((d,q)=>`<span class="drdone">${lad[q]} kg → <b>${d.r}</b></span>`).join('');
         h+=`<div class="picker drop"><div class="pk-l">↓ Descenso ${j+1} de ${lad.length} · <b>${wd} kg</b> — ¿cuántas hiciste?</div>
         <div class="drtop">Arriba: ${DRP.w!=null?DRP.w+' kg':''} → <b>${DRP.r}</b>${hechos}</div>
@@ -1318,8 +1332,11 @@ function dblProg(){
     for(let k=ses.length-1;k>=0;k--){
       const ds=ses[k];
       if(db(ds,hoy)>21)break;                            /* fuera de ventana */
-      const ser=LOG[ds].sd[x.id],r=rngFor(x.id,ds);
+      const serAll=LOG[ds].sd[x.id],r=rngFor(x.id,ds);
       if(!r)break;
+      /* drop set: solo la serie 1 es medicion limpia. Las siguientes arrastran
+         la fatiga de los descensos sin descanso y nunca cerrarian en el tope. */
+      const ser=drLad(x)?serAll.slice(0,1):serAll;
       const ws=ser.filter(v=>typeof v.w==='number').map(v=>v.w);
       const w=ws.length?Math.max.apply(null,ws):(x.w.bw?0:null);
       if(w==null)break;                                  /* legacy o sin peso */
@@ -1356,7 +1373,7 @@ function buildCtx(){
   o+='\n=== DOBLE PROGRESIÓN (calculado por la app) ===\n';
   if(!dp.length)o+='Ningún ejercicio cumple la condición de subir.\n';
   else dp.forEach(p=>{
-    o+=p.x.n+' (id '+p.x.id+'): '+p.n+' sesiones seguidas cerrando TODAS las series en el tope de '+p.b+' reps AL MISMO PESO ('+p.w+' kg, última el '+p.d.slice(5)+') · rango '+p.a+'-'+p.b+' → CUMPLE CONDICIÓN DE SUBIR'+(p.x.aq>=1?' [AQUILES: solo si no está congelado]':'')+'\n';
+    o+=p.x.n+' (id '+p.x.id+'): '+p.n+' sesiones seguidas cerrando TODAS las series en el tope de '+p.b+' reps AL MISMO PESO ('+p.w+' kg, última el '+p.d.slice(5)+') · rango '+p.a+'-'+p.b+(drLad(p.x)?' [drop set: medido en la serie 1, las siguientes arrastran fatiga sin descanso]':'')+' → CUMPLE CONDICIÓN DE SUBIR'+(p.x.aq>=1?' [AQUILES: solo si no está congelado]':'')+'\n';
   });
   o+='\n=== CUMPLIMIENTO 4 SEMANAS ===\n';
   for(let w=3;w>=0;w--){
@@ -1459,10 +1476,19 @@ function appProp(i){
     toast('🧊 No aplicado — '+x.n+' está congelado por Aquiles hasta el '+fr,1);
     return;
   }
-  /* BARANDA 2 — tope de subida: +5 kg compuestos/máquinas, +2 kg aislamientos */
+  /* BARANDA 2 — tope de subida: +5 kg compuestos/máquinas, +2 kg aislamientos.
+     En máquinas de torre el tope se mide en POSICIONES, no en kg: un tope de 2 kg
+     en una torre que salta de 4.5 no protege, bloquea para siempre. Máximo una
+     posición por aplicación, y el valor se encaja en un peso que exista. */
   const iso=/^iso_/.test(x.pat)||x.pat==='core',cap=iso?2:5;
   let val=p.valor,cut=false;
-  if(prev>0&&val>prev+cap){val=prev+cap;cut=true}
+  const si=Array.isArray(x.stk)?x.stk.indexOf(prev):-1;
+  if(si>=0){
+    let j=x.stk.findIndex(v=>v>=val);if(j<0)j=x.stk.length-1;
+    if(j>si+1){j=si+1;cut=true}
+    if(j<0)j=0;
+    val=x.stk[j];
+  }else if(prev>0&&val>prev+cap){val=prev+cap;cut=true}
   x.w.v=val;if(p.porLado!=null)x.w.ps=!!p.porLado;delete x.w.bw;
   if(!WH[p.ex])WH[p.ex]=[];
   WH[p.ex].push({d:tds(),v:val,ps:x.w.ps,w:wLabel(x.w)});
