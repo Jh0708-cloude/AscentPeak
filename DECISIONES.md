@@ -213,20 +213,62 @@ recibe la IA también lleva los dos números separados.
 
 ---
 
-## 7. Plan de entrenamiento v3 (desde 2026-07-27)
+## 7. Plan de entrenamiento v4 (desde 2026-08-08)
 
 | Día | Sesión | Abdomen / Gemelos |
 |---|---|---|
 | Lunes | Push A | Plancha con peso (anti-extensión) |
 | Martes | Pull A | Crunch en polea arrodillado |
-| Miércoles | Pierna A | Gemelo en prensa + gemelo sentado |
+| Miércoles | Pierna A | Gemelo en prensa inclinada + gemelo sentado |
 | Jueves | Push B | Elevación de piernas en máquina |
 | Viernes | Pull B | Pallof press (anti-rotación) |
-| Sábado | Pierna B | Gemelo en prensa |
+| Sábado | Pierna B | Gemelo en prensa inclinada |
 | Domingo | Descanso | — |
 
 Abdomen 4×/semana con estímulos distintos, gemelos 2×. Sin flexiones laterales
 cargadas: engrosan oblicuos y la meta es reducir cintura.
+
+**Qué cambió respecto a v3.** El v4 reemplaza por completo Pierna A y Pierna B.
+Push y Pull quedan intactos, con las ediciones que el usuario ya tenía guardadas.
+La migración corrió una sola vez, guardando sobre `PLAN.v===3`.
+
+**Pierna A (día 3) — 8 ejercicios, 26 series**
+
+| Ej | Nombre | Series × reps | aq |
+|---|---|---|---|
+| 40 | Sentadilla en máquina pendular | 4 × 8-10 | 1 |
+| 38 | Hiperextensión 45° | 3 × 12-15 | 0 |
+| 26 | Prensa de placas | 3 × 10-12 | 1 |
+| 23 | Curl femoral tumbado | 3 × 10-12 | 1 |
+| 22 | Extensión de piernas | 3 × 10-12 (drop) | 0 |
+| 27 | Abducción en máquina | 3 × 15-20 | 0 |
+| 34 | Gemelo en prensa inclinada | 3 × 15-20 | 1 |
+| 31 | Gemelo sentado | 4 × 15-20 | 1 |
+
+**Pierna B (día 6) — 7 ejercicios, 21 series**
+
+| Ej | Nombre | Series × reps | aq |
+|---|---|---|---|
+| 43 | Peso muerto rumano en Smith | 3 × 8-10 | 1 |
+| 41 | Prensa inclinada de disco | 3 × 10-12 | 1 |
+| 29 | Hip thrust | 3 × 10-12 | 0 |
+| 42 | Curl femoral sentado | 3 × 10-12 | 1 |
+| 22 | Extensión de piernas | 3 × 10-12 (drop) | 0 |
+| 28 | Aducción en máquina | 3 × 12-15 | 0 |
+| 34 | Gemelo en prensa inclinada | 3 × 15-20 | 1 |
+
+**Por qué se reescribió Pierna B.** El catálogo tenía un solo ejercicio de patrón
+`hip` y uno solo con isquios como primario. Eso mantenía isquios en 9 series a 14
+días contra un piso de 10, sesión tras sesión. El v4 mete rumano en Smith (`hip`,
+isquios primario) y curl femoral sentado, que trabajan el músculo en sus dos
+funciones —extensión de cadera con rodilla fija, y flexión de rodilla— y ninguno
+sustituye al otro. Tras el debut del 08/08, isquios subió a 15 y aductor de 3 a 6.
+Los dos huecos cerrados.
+
+**Nota histórica.** Esta sección quedó titulada "v3" hasta el 08/08 aunque el
+plan ya era v4 desde esa mañana: la §9 y la §13 lo mencionaban de pasada, pero la
+sección canónica nunca se actualizó. Un chat nuevo que leyera solo la §7 se
+llevaba el plan equivocado. Corregido.
 
 ---
 
@@ -823,3 +865,110 @@ Queda una pregunta abierta para el futuro: **¿hay un tercer camino?** La
 sincronización con Firestore escribe `CAT` completo desde la nube. Si otro
 dispositivo guarda un peso, entra sin pasar por `doW` ni `appProp`. Hoy no
 importa —hay un solo teléfono— pero conviene tenerlo anotado.
+
+---
+
+## 15. Debut de Pierna B v4 y desambiguación de la prensa (2026-08-08)
+
+Primera sesión completa con el plan v4: **21/21 series, 112 min, 17.1 t**. Debutan
+cuatro ejercicios (43, 41, 42 y el 34 en máquina nueva). Cuatro cosas quedaron
+claras.
+
+### 15.1 El congelamiento se reactivó, y la causa no fue el tendón
+
+`aqCheck()` marcó `e.aq=true` el 08/08 — congelamiento hasta el **22/08**. Se
+disparó en los cuatro ejercicios `aq:1`, todos en la tercera serie: rumano RIR 0,
+gemelo en prensa RIR 0, prensa inclinada RIR 1, curl femoral RIR 1. Ninguno
+llegó al piso de 2.
+
+El usuario reportó que el limitante fue **fatiga acumulada y práctica técnica**,
+no dolor de tendón ni carga excesiva. Los datos lo respaldan: llevaba **10 días
+seguidos entrenando** (30/07 → 08/08, 117 toneladas, sin descanso), y el rumano
+—donde más se fatigó— iba a 10 kg × lado, prácticamente en vacío.
+
+**Lección: `aqCheck()` no distingue la causa del RIR bajo, y no debe hacerlo.**
+Desde adentro, fatiga sistémica y cercanía al fallo se sienten igual: no sale otra
+repetición. El tendón recibe la misma carga en ambos casos. La baranda es correcta
+tal como está. Lo que faltaba era el contexto, y eso va en la nota del día.
+
+**Lección operativa: la racha de días sin descanso no está instrumentada.** El
+plan tiene domingo libre y se saltaron los dos últimos sin que nada lo señalara.
+Una racha de 10 días es información que el contexto de la IA debería llevar y hoy
+no lleva. Candidato a función, no construido aún.
+
+### 15.2 El id 34 cambió de máquina — se renombra, no se parte
+
+La prensa horizontal de placas (id 26) **no permite extender la rodilla** al hacer
+elevación de talón. Con la rodilla doblada el sóleo se lleva la carga y el
+gastrocnemio se apaga: el ejercicio pierde su rango. El usuario pasó a la prensa
+inclinada de disco (id 41) a 20 kg × lado.
+
+Se evaluó **partir el 34 en dos entradas**, una por prensa. Se descartó:
+
+- La horizontal no se va a volver a usar para gemelo — es una limitación física de
+  la máquina, no una preferencia. La segunda entrada nacería muerta.
+- La sesión del 08/08 ya registró el 34 en la inclinada. Con el split, ese dato
+  quedaría mal atribuido, y **el dato retroactivo no se toca**.
+- El `nt` de `w` documenta la discontinuidad sin duplicar el ejercicio.
+
+**Decisión: renombrar `id:34` a "Gemelo en prensa inclinada"** en `CAT_DEF`. El
+nombre viaja por `migCat()` —`n` está en la lista de metadatos que la semilla
+manda— así que se propaga solo al desplegar. El peso **no** viaja: `w` no está en
+esa lista, y se corrige a mano con `editW`.
+
+Discontinuidad a tener presente: los 40 / 30 / 20 kg × lado anteriores al 08/08
+son de la prensa horizontal. **No son comparables** con los números nuevos: otro
+carro, otro ángulo. La base real arranca en 20 kg × lado el 08/08.
+
+### 15.3 Los pesos de debut se escriben a mano, no por parche
+
+Cuatro ejercicios necesitaban `w.v` actualizado tras la sesión. Se hacen con
+`editW` dentro de la app y no parcheando el JSON, porque `doW()` escribe además
+el registro en `WH` —el historial de cargas— y un parche directo lo saltaría.
+
+| Ej | Antes | Después | Motivo |
+|---|---|---|---|
+| 41 | 0 | 60 × lado | debut, ya aplicado por el usuario |
+| 42 | 0 | 46 | debut |
+| 43 | 0 | 10 × lado | debut |
+| 34 | 40 × lado | 20 × lado | cambio de máquina |
+| 22 | 77 | 82 | subida real, `aq:0` |
+
+Confirmado en esta sesión lo que la §14 anticipaba: **la baranda no aplica sobre
+cero.** `wAlerts()` exige `prev>0` para las tres alertas, así que el curl femoral
+saltó de 36 a 46 kg a mitad de sesión —+10 kg, `aq:1`, debut— sin que nada lo
+avisara. Es el comportamiento correcto (no hay salto que medir contra cero), pero
+significa que **el primer peso de un ejercicio nuevo no tiene red**. Revisión
+manual obligatoria en el debut.
+
+### 15.4 La escalera del drop set se mueve al subir el tope
+
+La extensión de piernas se hizo a 82 kg pero con la escalera de 64/50/36/23, que
+es la de 77. `drLadder()` calcula desde `x.w.v`, no desde el peso realmente
+levantado, y el catálogo seguía en 77.
+
+Al corregir a 82, la escalera pasa sola a **68 / 54 / 41 / 27** (índice 16, tres
+posiciones por segmento). Comportamiento correcto y ya previsto por la regla.
+
+Aviso: 82 es la **posición 16 de la torre**, y `gr:[7,16]` pone el tope ahí mismo.
+El siguiente escalón queda fuera del rango permitido.
+
+### 15.5 Registro retroactivo — ya no es especulativo
+
+El 06/08 y el 07/08 el celular se apagó a mitad de sesión. El 07/08 se perdió el
+pallof press entero, y `openDay()` deja las fechas pasadas en solo lectura: hubo
+que reconstruir la entrada editando el JSON del respaldo y restaurando.
+
+Dos fallos en tres días. **La función de registro retroactivo pasa de "por si
+acaso" a necesidad demostrada.** Sigue sin construirse, pero ya no cae bajo la
+regla de no desarrollar en especulativo.
+
+### 15.6 Estado del desfase de catálogo
+
+16 de 32 ejercicios con historial siguen con `x.w.v` desfasado respecto al peso
+real. El arreglo (escribir al catálogo solo en subidas) sigue **bloqueado por el
+Paso 4**: necesita la marca `sub` para distinguir levantada real de sustitución.
+
+Prueba en datos de por qué el bloqueo es correcto: el 34 figuraba en catálogo a
+40 y su último registro real era **10** — el péndulo del 05/08, una sustitución.
+Escribir al catálogo sin la marca `sub` le habría bajado el peso a 10.
