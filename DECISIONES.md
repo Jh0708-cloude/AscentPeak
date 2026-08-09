@@ -941,17 +941,32 @@ avisara. Es el comportamiento correcto (no hay salto que medir contra cero), per
 significa que **el primer peso de un ejercicio nuevo no tiene red**. Revisión
 manual obligatoria en el debut.
 
-### 15.4 La escalera del drop set se mueve al subir el tope
+### 15.4 La escalera del drop set nunca corrió por regla
 
 La extensión de piernas se hizo a 82 kg pero con la escalera de 64/50/36/23, que
-es la de 77. `drLadder()` calcula desde `x.w.v`, no desde el peso realmente
-levantado, y el catálogo seguía en 77.
+es la de 77. La causa no era solo que el catálogo estuviera en 77.
 
-Al corregir a 82, la escalera pasa sola a **68 / 54 / 41 / 27** (índice 16, tres
-posiciones por segmento). Comportamiento correcto y ya previsto por la regla.
+**`id:22` tenía `dr:[64,50,36,23]` guardado como escalera fija.** `drLad()`
+devuelve `x.dr` antes de mirar la regla, así que el cálculo por `stk`/`drn`/`drs`
+**nunca se ejecutó**. En `CAT_DEF` el 22 no tiene `dr` — era un resto de la
+versión vieja que quedó en el catálogo del usuario. Y `dr` no está en la lista de
+campos que `migCat()` sincroniza desde la semilla, así que nunca se iba a limpiar
+solo.
 
-Aviso: 82 es la **posición 16 de la torre**, y `gr:[7,16]` pone el tope ahí mismo.
-El siguiente escalón queda fuera del rango permitido.
+Consecuencia: desde que existe el drop set, los escalones venían congelados. La
+regla estaba escrita, documentada en la §5 y no se aplicaba a nadie.
+
+**Corregido el 08/08 borrando `dr` del catálogo** —no se puede hacer desde la
+app, va por el JSON del respaldo. Con `w.v` en 82 la escalera pasa a
+**68 / 54 / 41 / 27** (índice 16, tres posiciones por segmento).
+
+**Lección: un campo que anula una regla y que la migración no toca es una bomba
+de relojería silenciosa.** No falla, no avisa; simplemente la función nueva no
+existe para quien arrastra el dato viejo. Al agregar un campo que tenga
+precedencia sobre otro, decidir explícitamente si la migración debe limpiarlo.
+
+Aviso aparte: 82 es la **posición 16 de la torre**, y `gr:[7,16]` pone el tope ahí
+mismo. El siguiente escalón queda fuera del rango permitido.
 
 ### 15.5 Registro retroactivo — ya no es especulativo
 
