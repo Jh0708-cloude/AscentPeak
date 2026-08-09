@@ -323,9 +323,9 @@ function gcol(g){return 'var('+(GCOL[g]||'--core')+')'}
 const CAT_DEF=[
  {id:1,n:'Press de pecho en máquina',pat:'push_h',pri:'Pecho',sec:['Tríceps','Hombro'],eq:'maquina',aq:0,w:{v:30,ps:true},rest:150},
  {id:2,n:'Aperturas con mancuernas',pat:'push_h',pri:'Pecho',sec:[],eq:'mancuerna',aq:0,w:{v:18,ps:true},rest:90},
- {id:3,n:'Cruce en polea alta',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:20},rest:90},
- {id:4,n:'Cruce en polea media',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:20},rest:90},
- {id:5,n:'Cruce en polea baja',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:15},rest:90},
+ {id:3,n:'Cruce en polea alta',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:20},stk:[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75],rest:90},
+ {id:4,n:'Cruce en polea media',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:20},stk:[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75],rest:90},
+ {id:5,n:'Cruce en polea baja',pat:'push_h',pri:'Pecho',sec:[],eq:'polea',aq:0,w:{v:15},stk:[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75],rest:90},
  {id:6,n:'Press militar con mancuernas',pat:'push_v',pri:'Hombro',sec:['Tríceps'],eq:'mancuerna',aq:0,w:{v:22.5,ps:true},rest:150},
  {id:7,n:'Elevaciones laterales',pat:'iso_delt',pri:'Hombro',sec:[],eq:'mancuerna',aq:0,w:{v:7.5,ps:true},rest:90},
  {id:8,n:'Máquina de elevaciones laterales',pat:'iso_delt',pri:'Hombro',sec:[],eq:'maquina',aq:0,w:{v:35},rest:90},
@@ -334,10 +334,10 @@ const CAT_DEF=[
  {id:11,n:'Fondos en paralelas',pat:'push_h',pri:'Tríceps',sec:['Pecho','Hombro'],eq:'corporal',aq:0,w:{bw:true},rest:150},
  {id:12,n:'Extensión en polea con cuerda',pat:'iso_tri',pri:'Tríceps',sec:[],eq:'polea',aq:0,w:{v:30},rest:90},
  {id:13,n:'Máquina de fondos sentado',pat:'iso_tri',pri:'Tríceps',sec:[],eq:'maquina',aq:0,w:{v:50},rest:150},
- {id:14,n:'Jalón al pecho',pat:'pull_v',pri:'Espalda',sec:['Bíceps'],eq:'polea',aq:0,w:{v:50},rest:150},
- {id:15,n:'Remo sentado en polea',pat:'pull_h',pri:'Espalda',sec:['Bíceps'],eq:'polea',aq:0,w:{v:50},rest:150},
+ {id:14,n:'Jalón al pecho',pat:'pull_v',pri:'Espalda',sec:['Bíceps'],eq:'polea',aq:0,w:{v:50},stk:[9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91],rest:150},
+ {id:15,n:'Remo sentado en polea',pat:'pull_h',pri:'Espalda',sec:['Bíceps'],eq:'polea',aq:0,w:{v:50},stk:[9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91],rest:150},
  {id:16,n:'Remo con mancuernas inclinado',pat:'pull_h',pri:'Espalda',sec:['Bíceps'],eq:'mancuerna',aq:0,w:{v:20,ps:true},rest:150},
- {id:17,n:'Remo apoyado boca abajo',pat:'pull_h',pri:'Espalda',sec:['Bíceps'],eq:'maquina',aq:0,w:{v:40},rest:150},
+ {id:17,n:'Remo apoyado boca abajo',pat:'pull_h',pri:'Espalda',sec:['Bíceps'],eq:'disco',aq:0,w:{v:40},rest:150},
  {id:18,n:'Curl de bíceps',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'mancuerna',aq:0,w:{v:16,ps:true},rest:90},
  {id:19,n:'Curl Zottman',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'mancuerna',aq:0,w:{v:12,ps:true},rest:90},
  {id:20,n:'Curl predicador',pat:'iso_bi',pri:'Bíceps',sec:[],eq:'maquina',aq:0,w:{v:15,ps:true},rest:90},
@@ -349,14 +349,14 @@ const CAT_DEF=[
  {id:26,n:'Prensa de placas',pat:'knee',pri:'Cuádriceps',sec:['Glúteo'],eq:'prensa',aq:1,w:{v:77,ps:true},rest:150},
  {id:27,n:'Abducción (abrir)',pat:'iso_leg',pri:'Glúteo',sec:[],eq:'maquina',aq:0,w:{v:45},rest:90},
  {id:28,n:'Aducción (cerrar)',pat:'iso_leg',pri:'Aductor',sec:[],eq:'maquina',aq:0,w:{v:45},rest:90},
- {id:29,n:'Hip thrust en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'maquina',aq:0,w:{v:35},rest:150},
+ {id:29,n:'Hip thrust en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'disco',aq:0,w:{v:35},rest:150},
  {id:30,n:'Elevaciones de talón en escalón',pat:'calf',pri:'Gemelo',sec:[],eq:'corporal',aq:3,w:{bw:true},rest:75},
- {id:31,n:'Gemelo sentado',pat:'calf',pri:'Gemelo',sec:[],eq:'maquina',aq:1,w:{v:10},rest:75},
+ {id:31,n:'Gemelo sentado',pat:'calf',pri:'Gemelo',sec:[],eq:'disco',aq:1,w:{v:10},rest:75},
  {id:32,n:'Crunch con peso',pat:'core',pri:'Core',sec:[],eq:'corporal',aq:0,w:{v:5},rest:60},
  {id:33,n:'Elevación de piernas en máquina',pat:'core',pri:'Core',sec:[],eq:'maquina',aq:0,w:{bw:true},rest:60},
  {id:34,n:'Gemelo en prensa inclinada',pat:'calf',pri:'Gemelo',sec:[],eq:'prensa',aq:1,w:{v:40,ps:true},rest:75},
  {id:35,n:'Plancha con peso',pat:'core',pri:'Core',sec:[],eq:'corporal',aq:0,unit:'seg',w:{bw:true,pl:true},rest:60},
- {id:36,n:'Crunch en polea arrodillado',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:25},rest:60},
+ {id:36,n:'Crunch abdominal sentado',pat:'core',pri:'Core',sec:[],eq:'disco',aq:0,w:{v:25},rest:60},
  {id:37,n:'Pallof press en polea',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:15},rest:60},
  {id:38,n:'Hiperextensión 45°',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'corporal',aq:0,w:{bw:true,pl:true},rest:90},
  {id:39,n:'Patada de glúteo en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'maquina',aq:0,w:{v:0,ps:true,nt:'unilateral'},rest:90},
@@ -1041,7 +1041,7 @@ function tickRest(){
 }
 /* Ver la lista del dia sin salir del descanso: sirve para mirar si la maquina
    que sigue esta libre. Solo lectura — no cambia de ejercicio ni toca el timer. */
-const EQL={maquina:'máquina',polea:'polea',mancuerna:'mancuernas',barra:'barra',corporal:'corporal',prensa:'prensa'};
+const EQL={maquina:'máquina',polea:'polea',mancuerna:'mancuernas',barra:'barra',corporal:'corporal',prensa:'prensa',disco:'disco'};
 function buildRQ(){
   const d=PLAN.days[TR.dk];if(!d||!d.it)return '';
   const e=LOG[TR.ds]||{};const pg=e.prog||{};
