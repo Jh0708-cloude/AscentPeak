@@ -151,6 +151,13 @@ nav button.on{color:var(--brand)}
 .tr-foot button{flex:1;padding:13px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:var(--text);font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter'}
 .tr-foot .fnext{background:var(--brand);color:var(--onb);border-color:var(--brand)}
 /* descanso pantalla completa */
+#rchip{position:fixed;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:65;display:none;align-items:baseline;gap:7px;background:var(--s1);border:1px solid var(--line);border-radius:99px;padding:7px 14px;box-shadow:0 6px 18px #0006}
+#rchip.on{display:flex}
+#rchip .rcl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+#rchip .rcv{font-family:'Bebas Neue';font-size:22px;line-height:1;color:var(--muted)}
+#rchip.over{border-color:#8A7233;background:#4A3A1A4D}
+#rchip.over .rcv{color:var(--warn)}
+#rchip.over .rcl{color:var(--warn);opacity:.75}
 #rest{position:fixed;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 #rest.on{display:flex}
 #rest .rl{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
@@ -291,6 +298,7 @@ nav button.on{color:var(--brand)}
   </div>
   <div class="tr-body" id="trbody"></div>
   <div class="tr-foot" id="trfoot"></div>
+  <div id="rchip"><span class="rcl">Descanso</span><span class="rcv" id="rcv">0:00</span></div>
 </div>
 <div id="rest">
   <div class="rl">Descanso</div>
@@ -650,7 +658,7 @@ function startTrain(ds){
 function exitTrain(){
   document.body.classList.remove('training');
   document.getElementById('train').classList.remove('on');
-  stopRest();rEntrenar();
+  stopRest();chipOff();rEntrenar();
 }
 function toggleTrainMode(){TR.mode=TR.mode==='focus'?'list':'focus';drawTrain()}
 function drawTrain(){
@@ -987,7 +995,7 @@ function finishDay(){
   const {ds,dk}=TR,e=entry(ds,dk);
   const tot=planSets(dk,e),dn=doneSets(e);
   if(dn>=tot&&tot>0&&e.tp==null){e.tp=tot;saveLog(ds)}
-  stopRest();
+  stopRest();chipOff();
   const vol=volOf(ds),dur=e.t0&&e.t1?Math.round((e.t1-e.t0)/60000):null;
   const prs=[];
   Object.keys(e.sd||{}).forEach(id=>{
@@ -1022,9 +1030,9 @@ function saveNote(){
   saveLog(TR.ds);closeM();
 }
 /* ============ DESCANSO ============ */
-let RS={iv:null,end:0,v10:false};
+let RS={iv:null,civ:null,end:0,v10:false};
 function startRest(sec,next){
-  stopRest();RS.end=Date.now()+sec*1000;RS.v10=false;
+  stopRest();chipOff();RS.end=Date.now()+sec*1000;RS.v10=false;
   document.getElementById('rnext').innerHTML='A continuación<b>'+esc(next||'')+'</b>';
   document.getElementById('rest').classList.add('on');
   document.getElementById('rest').classList.remove('fin','q');
@@ -1063,7 +1071,26 @@ function toggleRQ(){
   document.getElementById('rqb').textContent=on?'⏱ Descanso':'👁 Lo que sigue';
 }
 function addRest(s){RS.end+=s*1000;document.getElementById('rest').classList.remove('fin');if(!RS.iv)RS.iv=setInterval(tickRest,250);tickRest()}
-function endRest(){stopRest()}
+function endRest(){stopRest();chipOn()}
+/* pastilla de descanso: sigue contando cuando cierras el panel.
+   Se calcula contra RS.end, no con un contador acumulado, para que
+   siga siendo correcta aunque el navegador congele la pestana. */
+function chipTick(){
+  const c=document.getElementById('rchip');if(!c.classList.contains('on'))return;
+  const l=Math.round((RS.end-Date.now())/1000),a=Math.abs(l);
+  document.getElementById('rcv').textContent=(l<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
+  c.classList.toggle('over',l<0);
+}
+function chipOn(){
+  if(!RS.end)return;
+  document.getElementById('rchip').classList.add('on');
+  chipTick();if(RS.civ)clearInterval(RS.civ);RS.civ=setInterval(chipTick,1000);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)chipTick()});
+function chipOff(){
+  if(RS.civ){clearInterval(RS.civ);RS.civ=null}
+  const c=document.getElementById('rchip');c.classList.remove('on','over');
+}
 function stopRest(){if(RS.iv){clearInterval(RS.iv);RS.iv=null}document.getElementById('rest').classList.remove('on','fin')}
 /* ============ PROGRESO ============ */
 let pTab='cuerpo',pMeas='cintura',pMonth=0;
