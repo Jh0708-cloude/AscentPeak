@@ -151,7 +151,7 @@ nav button.on{color:var(--brand)}
 .tr-foot button{flex:1;padding:13px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:var(--text);font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter'}
 .tr-foot .fnext{background:var(--brand);color:var(--onb);border-color:var(--brand)}
 /* descanso pantalla completa */
-#rchip{position:fixed;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:65;display:none;align-items:baseline;gap:7px;background:var(--s1);border:1px solid var(--line);border-radius:99px;padding:7px 14px;box-shadow:0 6px 18px #0006}
+#rchip{cursor:pointer;user-select:none;position:fixed;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:65;display:none;align-items:baseline;gap:7px;background:var(--s1);border:1px solid var(--line);border-radius:99px;padding:7px 14px;box-shadow:0 6px 18px #0006}
 #rchip.on{display:flex}
 #rchip .rcl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
 #rchip .rcv{font-family:'Bebas Neue';font-size:22px;line-height:1;color:var(--muted)}
@@ -298,7 +298,7 @@ nav button.on{color:var(--brand)}
   </div>
   <div class="tr-body" id="trbody"></div>
   <div class="tr-foot" id="trfoot"></div>
-  <div id="rchip"><span class="rcl">Descanso</span><span class="rcv" id="rcv">0:00</span></div>
+  <div id="rchip" onclick="chipToggle()"><span class="rcl" id="rcl">Entre series</span><span class="rcv" id="rcv">0:00</span></div>
 </div>
 <div id="rest">
   <div class="rl">Descanso</div>
@@ -849,7 +849,7 @@ function recordSet(reps,w,rir,dr){
   const last=(cur+1)>=it.s;
   if(last&&TR.i<d.it.length-1)TR.i++;
   drawTrain();
-  startRest(x.rest,last?'Siguiente ejercicio':'Serie '+(cur+2)+' de '+it.s);
+  startRest(x.rest,last?'Siguiente ejercicio':'Serie '+(cur+2)+' de '+it.s,last);
 }
 /* ===== pulsación larga: 600 ms sobre una serie hecha ===== */
 let LP=null;
@@ -1030,9 +1030,9 @@ function saveNote(){
   saveLog(TR.ds);closeM();
 }
 /* ============ DESCANSO ============ */
-let RS={iv:null,civ:null,end:0,v10:false};
-function startRest(sec,next){
-  stopRest();chipOff();RS.end=Date.now()+sec*1000;RS.v10=false;
+let RS={iv:null,civ:null,end:0,v10:false,chg:false};
+function startRest(sec,next,chg){
+  stopRest();chipOff();RS.end=Date.now()+sec*1000;RS.v10=false;RS.chg=!!chg;
   document.getElementById('rnext').innerHTML='A continuación<b>'+esc(next||'')+'</b>';
   document.getElementById('rest').classList.add('on');
   document.getElementById('rest').classList.remove('fin','q');
@@ -1079,7 +1079,9 @@ function chipTick(){
   const c=document.getElementById('rchip');if(!c.classList.contains('on'))return;
   const l=Math.round((RS.end-Date.now())/1000),a=Math.abs(l);
   document.getElementById('rcv').textContent=(l<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
-  c.classList.toggle('over',l<0);
+  document.getElementById('rcl').textContent=RS.chg?'Cambio de maquina':'Entre series';
+  /* en el cambio de maquina el tiempo de traslado no es descanso de mas: cuenta, pero no acusa */
+  c.classList.toggle('over',l<0&&!RS.chg);
 }
 function chipOn(){
   if(!RS.end)return;
@@ -1087,6 +1089,12 @@ function chipOn(){
   chipTick();if(RS.civ)clearInterval(RS.civ);RS.civ=setInterval(chipTick,1000);
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)chipTick()});
+/* el usuario corrige la etiqueta: la app no puede saber si vas a meter una serie extra */
+function chipToggle(){
+  if(!document.getElementById('rchip').classList.contains('on'))return;
+  RS.chg=!RS.chg;chipTick();
+  toast(RS.chg?'Cambio de máquina':'Sigues en el mismo ejercicio');
+}
 function chipOff(){
   if(RS.civ){clearInterval(RS.civ);RS.civ=null}
   const c=document.getElementById('rchip');c.classList.remove('on','over');
@@ -1335,7 +1343,7 @@ const SYS=`Eres el entrenador personal de Jhair (Lima, Perú). Contexto:
 - El bloque DOBLE PROGRESION ya viene CALCULADO por la app y exige MISMO PESO en sesiones consecutivas: si el peso cambio entre sesiones la racha se corta, porque cambiar el peso YA ES la progresion. No propongas subir dos veces por el mismo logro.
 - El bloque DOBLE PROGRESION: esos ejercicios cumplen la condicion de subir carga. Revisalos uno por uno. Si decides no subir alguno, explica por que en las alertas; no lo ignores en silencio.
 - El detalle de sesiones va NUMERADO en el orden REAL de ejecucion cuando el dato existe (sesiones desde el 05/08). Si aparece "orden real distinto al del plan", tenlo en cuenta: lo que se hace al final rinde menos por fatiga acumulada, y eso no es estancamiento sino posicion.
-- "descanso real" es el tiempo medido entre series. Si es MUY menor al del plan de forma repetida, el rendimiento cae por descanso insuficiente antes que por falta de carga.
+- "entre series" es el hueco medido entre una serie registrada y la siguiente. Incluye el descanso Y la ejecucion de la serie, asi que SIEMPRE sale mayor que el descanso del plan: un exceso de 40-60s por serie es normal, no es distraccion. Solo llama la atencion si el exceso pasa del minuto o dos de forma repetida. Si es MUY menor al del plan, el rendimiento cae por descanso insuficiente antes que por falta de carga.
 - Las sesiones anteriores al 05/08 no tienen hora por serie: ahi no hay orden ni descanso real y no debes suponerlos.
 - Marcas [REAL: X kg] y [REAL: X series]: es lo que Jhair hizo de verdad la ultima vez. MANDAN sobre el numero del catalogo y del plan, que solo se actualizan cuando el aplica una propuesta. Si el peso real es MAYOR al del catalogo, ya progreso solo: reconocelo y parte de ahi. Nunca le propongas un peso que ya supero.
 - Si las series reales difieren del plan de forma repetida, no lo ignores: o le propones actualizar el plan a lo que hace, o le explicas por que conviene volver al numero planificado.
@@ -1525,7 +1533,7 @@ function buildCtx(){
       const x=ex(+id);if(!x)return;
       const rs=restOf(e.sd[id]);
       o+='   '+(conTs?(k+1)+'. ':'')+x.n+': '+(e.sd[id]||[]).map(s=>rLabel(x,s.r)+(s.w?'@'+s.w:'')+(s.rir!=null?' RIR'+s.rir:'')+(Array.isArray(s.dr)&&s.dr.length?' [DROP '+s.dr.map(d=>d.w+'×'+d.r).join('/')+']':'')+(s.rf?' [BAJO PISO AQ]':'')+(s.xt?' [extra]':'')+(s.ed?' [corregida]':'')+(legW(s)?' [legacy]':'')).join(', ')
-       +(rs?' · descanso real ~'+mmss(rs)+' (plan '+mmss(x.rest||90)+')':'')+'\n';
+       +(rs?' · entre series ~'+mmss(rs)+' (descanso del plan '+mmss(x.rest||90)+', pero este numero incluye la ejecucion)':'')+'\n';
     });
     (e.notes||[]).forEach(n=>{o+='   📝 '+n.t+' — '+n.txt+'\n'});
   });
