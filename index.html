@@ -367,7 +367,7 @@ const CAT_DEF=[
  {id:36,n:'Crunch abdominal sentado',pat:'core',pri:'Core',sec:[],eq:'disco',aq:0,w:{v:25},rest:60},
  {id:37,n:'Pallof press en polea',pat:'core',pri:'Core',sec:[],eq:'polea',aq:0,w:{v:15},rest:60},
  {id:38,n:'Hiperextensión 45°',pat:'hip',pri:'Isquios',sec:['Glúteo','Espalda'],eq:'corporal',aq:0,w:{bw:true,pl:true},rest:90},
- {id:39,n:'Patada de glúteo en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'maquina',aq:0,w:{v:0,ps:true,nt:'unilateral'},rest:90},
+ {id:39,n:'Patada de glúteo en máquina',pat:'hip',pri:'Glúteo',sec:['Isquios'],eq:'disco',aq:0,w:{v:0,ps:true,nt:'unilateral'},rest:90},
  {id:40,n:'Sentadilla pendular',pat:'knee',pri:'Cuádriceps',sec:['Glúteo','Isquios'],eq:'maquina',aq:1,w:{v:0,ps:true,nt:'disco'},rest:150},
  {id:41,n:'Prensa inclinada de disco',pat:'knee',pri:'Cuádriceps',sec:['Glúteo','Isquios'],eq:'prensa',aq:1,w:{v:0,ps:true,nt:'disco'},rest:150},
  {id:42,n:'Curl femoral sentado',pat:'iso_leg',pri:'Isquios',sec:[],eq:'maquina',aq:1,w:{v:0},stk:[9,14,18,23,27,32,36,41,46,50,54,59,64,68,73,77,82,86,91],rest:90},
@@ -838,6 +838,8 @@ function recordSet(reps,w,rir,dr){
   if(Array.isArray(dr)&&dr.length)rec.dr=dr;
   if(rir!=null)rec.rir=rir;
   if(rir!=null&&rir<2&&x.aq>=1)rec.rf=1;
+  const jm=setJump(x,w,e.sd[it.e]);
+  if(jm)rec.jw=1;
   rec.ts=Date.now();
   e.sd[it.e].push(rec);
   const now=Date.now();if(!e.t0)e.t0=now;e.t1=now;
@@ -845,11 +847,12 @@ function recordSet(reps,w,rir,dr){
   if(navigator.vibrate)navigator.vibrate(25);
   aqCheck(e,x,rir);
   const tot=planSets(dk,e);
-  if(doneSets(e)>=tot){drawTrain();finishDay();return}
+  if(doneSets(e)>=tot){if(jm)toast('⚠️ '+x.n+': '+jm,true);drawTrain();finishDay();return}
   const last=(cur+1)>=it.s;
   if(last&&TR.i<d.it.length-1)TR.i++;
   drawTrain();
   startRest(x.rest,last?'Siguiente ejercicio':'Serie '+(cur+2)+' de '+it.s,last);
+  if(jm)jumpAsk(jm,x.n);
 }
 /* ===== pulsación larga: 600 ms sobre una serie hecha ===== */
 let LP=null;
@@ -1228,7 +1231,34 @@ function editW(id){
    no lo vigilaba nadie, y el 05/08 la hack subio a 35 kg con el protocolo activo
    sin que nada lo dijera. Aqui NO se bloquea: el usuario decide. Lo que no puede
    pasar es que suba sin enterarse. */
-let PENDW=null;
+let PENDW=null,PENDJ=null,PENDIMP=null;
+/* SALTO DE CARGA AL REGISTRAR — el camino del gimnasio no tenia ningun tope.
+   Se compara contra la serie anterior de la sesion y, si no hay, contra el
+   ultimo peso realmente levantado (no contra el catalogo, que puede estar en 0). */
+function setJump(x,w,ser){
+  if(x==null||typeof w!=='number')return null;
+  let prev=null;
+  for(let i=ser.length-1;i>=0;i--){if(typeof ser[i].w==='number'){prev=ser[i].w;break}}
+  if(prev==null){const r=realMap()[x.id];if(r&&typeof r.w==='number')prev=r.w}
+  if(prev==null||prev<=0||w<=prev)return null;
+  const stk=x.stk;
+  if(Array.isArray(stk)&&stk.indexOf(prev)>=0){
+    const a=stk.indexOf(prev);let b=stk.findIndex(p=>p>=w);if(b<0)b=stk.length-1;
+    return b>a+1?('salta '+(b-a)+' posiciones de la torre: '+prev+' → '+w+' kg'):null;
+  }
+  const cap=(x.pat.indexOf('iso_')===0||x.pat==='core')?2:5;
+  return w>prev+cap?('sube '+(Math.round((w-prev)*10)/10)+' kg de golpe: '+prev+' → '+w):null;
+}
+function jumpAsk(msg,n){
+  openM('<h2>⚠️ Salto de carga</h2><div class="sub">'+esc(n)+': '+esc(msg)+'.<br><br>Ya quedó registrado. Si quieres, anota por qué — sirve para leer la sesión después.</div>'
+   +'<textarea id="jn" rows="3" placeholder="probé la primera serie y podía mucho más..."></textarea>'
+   +'<div class="mb"><button onclick="closeM()">Ahora no</button><button class="ok" onclick="jumpSave()">Guardar nota</button></div>');
+}
+function jumpSave(){
+  const t=(document.getElementById('jn').value||'').trim();
+  if(t){const e=entry(TR.ds,TR.dk);noteFix(e,t);saveLog(TR.ds)}
+  closeM();
+}
 function wAlerts(x,v){
   const prev=x.w.bw?0:(x.w.v||0),al=[];
   /* nivel 3 = fuera del plan siempre. Se avisa aunque no haya congelamiento */
@@ -1272,12 +1302,19 @@ function doWGo(){
   const prev=x.w.bw?0:(x.w.v||0);
   const prevMax=Math.max(0,...(WH[id]||[]).map(r=>r.v||parseFloat(r.w)||0));
   x.w={v,ps,nt:nt||undefined};
+  /* el peso a mano es la verdad: se borra el sc del plan, que lo pisaba en pantalla
+     y ademas llegaba al prompt contradiciendo al catalogo */
+  let scb=0;
+  Object.keys(PLAN.days).forEach(k=>(PLAN.days[k].it||[]).forEach(it=>{
+    if(it.e===id&&it.sc){delete it.sc;scb++}
+  }));
+  if(scb){st(K.plan,PLAN);queue()}
   if(!WH[id])WH[id]=[];
   WH[id].push({d:tds(),v,ps,w:wLabel(x.w)});
   /* si ignoro un aviso queda registrado: el domingo el entrenador lo ve */
   if(av){DIARY.push({d:tds(),ex:id,ok:true,v,prev,m:'cambio a mano con aviso',mano:true});save(K.diary,DIARY)}
   save(K.cat,CAT);save(K.wh,WH);
-  toast(v>prevMax&&prevMax>0?'🏆 Nuevo récord de carga':'Peso actualizado');
+  toast(scb?'Peso actualizado · el plan ya no lo pisa':(v>prevMax&&prevMax>0?'🏆 Nuevo récord de carga':'Peso actualizado'));
   closeM();rProgreso();
 }
 function vAct(){
@@ -1494,8 +1531,13 @@ function buildCtx(){
     const r=REAL[x.id];let mk='';
     if(r&&r.w!=null&&uOf(x)!=='seg'&&x.w.v!=null&&(Math.abs(r.w-x.w.v)>0.01||(r.mx!=null&&r.mx>r.w+0.01)))
       mk=' [REAL: '+r.w+' kg el '+r.d.slice(5)+(r.mx!=null&&r.mx>r.w+0.01?' · máx '+r.mx+' el '+r.mxd.slice(5):'')+']';
-    o+=x.id+' · '+x.n+' · '+PAT[x.pat].n+' · '+wLabel(x.w)+mk+(uOf(x)==='seg'?' [SEGUNDOS]':'')+(x.aq>=2?' [AQUILES]':'')+'\n';
+    o+=x.id+' · '+x.n+' · '+PAT[x.pat].n+' · '+wLabel(x.w)+mk+(uOf(x)==='seg'?' [SEGUNDOS]':'')+(x.aq>=1?' [AQUILES nivel '+x.aq+']':'')+'\n';
   });
+  const _fz=aqFrozen();
+  if(_fz)o+='\n>>> PROGRESION CONGELADA POR PROTOCOLO AQUILES HASTA '+_fz+' <<<\n'
+   +'NO propongas subidas de peso en NINGUN ejercicio marcado [AQUILES nivel 1] o superior: la app las va a rechazar.\n'
+   +'Si en esos ejercicios se cumple la doble progresion, dilo en el analisis pero no lo propongas como cambio.\n'
+   +'En los ejercicios sin marca [AQUILES] progresa con normalidad.\n';
   o+='\n=== PLAN v'+PLAN.v+' (desde '+PLAN.since+') ===\n';
   [1,2,3,4,5,6].forEach(d=>{
     o+=DIAS[d]+' — '+PLAN.days[d].l+': '+PLAN.days[d].it.map(i=>{
@@ -1702,22 +1744,43 @@ function doAddIt(d){
   const e=+document.getElementById('ai').value,s=+document.getElementById('as').value||3,r=document.getElementById('ar').value||'10-12';
   PLAN.days[d].it.push({e,s,r});save(K.plan,PLAN);editPlan();setTimeout(()=>{document.getElementById('pd').value=d;planDay(d)},50);
 }
-function expData(){
+function expData(auto){
   const d={cat:CAT,plan:PLAN,log:LOG,wh:WH,ms:MS,ai:AI,diary:DIARY,v:2,exported:new Date().toISOString()};
   const b=new Blob([JSON.stringify(d,null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ascentpeak-'+tds()+'.json';a.click();URL.revokeObjectURL(a.href);
-  toast('Respaldo descargado');
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ascentpeak-'+tds()+(auto?'-antes-de-restaurar':'')+'.json';a.click();URL.revokeObjectURL(a.href);
+  if(!auto)toast('Respaldo descargado');
 }
 function impData(){
   const i=document.createElement('input');i.type='file';i.accept='.json';
   i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
     r.onload=()=>{try{const d=JSON.parse(r.result);
-      if(d.cat)CAT=d.cat;if(d.plan)PLAN=d.plan;if(d.log)LOG=d.log;if(d.wh)WH=d.wh;if(d.ms)MS=d.ms;if(d.ai)AI=d.ai;if(d.diary)DIARY=d.diary;
-      st(K.cat,CAT);st(K.plan,PLAN);st(K.log,LOG);st(K.wh,WH);st(K.ms,MS);st(K.ai,AI);st(K.diary,DIARY);
-      fullSync();toast('Datos restaurados');go('entrenar');
+      if(!d||typeof d!=='object'||(!d.log&&!d.cat))throw 0;
+      PENDIMP=d;impAsk(d,f.name);
     }catch(e){alert('Archivo no válido')}};
     r.readAsText(f)};
   i.click();
+}
+/* RESTAURAR PISA TODO. Antes de hacerlo se dice exactamente que se pierde
+   y se descarga un respaldo del estado actual, para poder volver atras. */
+function impAsk(d,fn){
+  const nl=Object.keys(d.log||{}), cl=Object.keys(LOG);
+  const perd=cl.filter(k=>!(d.log||{})[k]).sort();
+  const ult=nl.slice().sort().pop()||'—';
+  let h='<h2>¿Restaurar respaldo?</h2><div class="sub">'+esc(fn)+'<br>Exportado: '+esc((d.exported||'').slice(0,10)||'sin fecha')
+   +'<br><br>El archivo trae <b>'+nl.length+' días</b> (último '+esc(ult)+'). Ahora tienes <b>'+cl.length+'</b>.</div>';
+  if(perd.length)h+='<div class="lastline" style="border-color:#8A7233">⚠️ Se van a <b>perder '+perd.length+' sesión'+(perd.length>1?'es':'')+'</b> que el archivo no tiene:<br>'+perd.slice(-6).map(esc).join(' · ')+'</div>';
+  else h+='<div class="lastline">No se pierde ninguna sesión.</div>';
+  h+='<div class="lastline">Se descargará un respaldo del estado actual antes de sobrescribir.</div>';
+  h+='<div class="mb"><button onclick="impCancel()">Cancelar</button><button class="ok" onclick="impGo()">Restaurar</button></div>';
+  openM(h);
+}
+function impCancel(){PENDIMP=null;closeM()}
+function impGo(){
+  const d=PENDIMP;PENDIMP=null;if(!d){closeM();return}
+  expData(true);
+  if(d.cat)CAT=d.cat;if(d.plan)PLAN=d.plan;if(d.log)LOG=d.log;if(d.wh)WH=d.wh;if(d.ms)MS=d.ms;if(d.ai)AI=d.ai;if(d.diary)DIARY=d.diary;
+  st(K.cat,CAT);st(K.plan,PLAN);st(K.log,LOG);st(K.wh,WH);st(K.ms,MS);st(K.ai,AI);st(K.diary,DIARY);
+  fullSync();closeM();toast('Datos restaurados');go('entrenar');
 }
 /* ============ FIREBASE ============ */
 const SK={};SK[K.cat]='cat2';SK[K.plan]='plan';SK[K.wh]='wh';SK[K.ms]='ms';SK[K.ai]='ai2';SK[K.diary]='diary';
